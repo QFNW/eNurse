@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module';
 import { BmModule } from './modules/bm/bm.module';
 import { MedicationsModule } from './modules/medications/medications.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
+import { GroupsModule } from './modules/groups/groups.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ValidationPipe } from '@nestjs/common';
@@ -24,6 +25,7 @@ import configuration from './config/configuration';
     BmModule,
     MedicationsModule,
     AlertsModule,
+    GroupsModule,
   ],
   providers: [
     {
