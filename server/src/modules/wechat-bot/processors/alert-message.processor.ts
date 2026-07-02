@@ -32,15 +32,13 @@ export class AlertMessageProcessor {
       `Processing alert ${alertId} (${type}) for user ${userId}, retry: ${retryCount}`,
     );
 
-    // Double-check for retry: is the alert still unresolved?
-    if (job.data.isRetry) {
-      const alert = await this.prisma.alert.findUnique({
-        where: { id: alertId },
-      });
-      if (!alert || alert.isResolved) {
-        this.logger.log(`Alert ${alertId} already resolved, skipping`);
-        return { skipped: true, reason: 'resolved' };
-      }
+    // Always check if alert is still unresolved (not just on retry)
+    const alert = await this.prisma.alert.findUnique({
+      where: { id: alertId },
+    });
+    if (!alert || alert.isResolved) {
+      this.logger.log(`Alert ${alertId} already resolved, skipping`);
+      return { skipped: true, reason: 'resolved' };
     }
 
     // Look up user
@@ -66,14 +64,18 @@ export class AlertMessageProcessor {
     });
 
     if (membership) {
-      await this.prisma.groupAlert.create({
-        data: { groupId: membership.groupId, alertId },
+      // Guard against duplicate groupAlert on retry
+      const existingGA = await this.prisma.groupAlert.findFirst({
+        where: { groupId: membership.groupId, alertId },
       });
-
-      // Group WeChat room ID — needs to be configured per group (future)
-      this.logger.log(
-        `Group alert recorded for group ${membership.groupId} (user ${userId})`,
-      );
+      if (!existingGA) {
+        await this.prisma.groupAlert.create({
+          data: { groupId: membership.groupId, alertId },
+        });
+        this.logger.log(
+          `Group alert recorded for group ${membership.groupId} (user ${userId})`,
+        );
+      }
     }
 
     // Record sent alert

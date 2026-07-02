@@ -22,22 +22,23 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (existing) {
-      throw new ConflictException('该邮箱已被注册');
-    }
-
     const passwordHash = await bcrypt.hash(dto.password, 12);
     // Force PATIENT role for self-registration — NURSE/ADMIN must be created by admin
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        passwordHash,
-        role: 'PATIENT',
-      },
-    });
+    let user;
+    try {
+      user = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          passwordHash,
+          role: 'PATIENT',
+        },
+      });
+    } catch (err: any) {
+      if (err.code === 'P2002') {
+        throw new ConflictException('该邮箱已被注册');
+      }
+      throw err;
+    }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
     return {

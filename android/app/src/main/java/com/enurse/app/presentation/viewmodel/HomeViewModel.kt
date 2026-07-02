@@ -54,17 +54,17 @@ class HomeViewModel @Inject constructor(
                     loadAlerts() // Refresh alerts after recording
                 }
                 .onFailure { e ->
-                    // Only fall back to offline on network errors, not validation/auth failures
-                    val msg = e.message ?: ""
-                    val isNetworkError = msg.contains("timeout") || msg.contains("connect") ||
-                        msg.contains("network") || msg.contains("unreachable")
+                    val isNetworkError = e is java.net.ConnectException ||
+                        e is java.net.UnknownHostException ||
+                        e is java.net.SocketTimeoutException ||
+                        e is java.net.SocketException
                     if (isNetworkError) {
                         bmRepository.recordOffline(userId, now)
                         _state.value = _state.value.copy(isRecording = false, recordSuccess = true,
                             error = "网络异常，已本地保存，稍后自动同步")
                     } else {
                         _state.value = _state.value.copy(isRecording = false,
-                            error = msg.ifBlank { "打卡失败" })
+                            error = (e.message ?: "").ifBlank { "打卡失败" })
                     }
                 }
         }

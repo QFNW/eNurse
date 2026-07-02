@@ -62,8 +62,9 @@ fun AppNavGraph() {
         }
         composable("auth/register") {
             RegisterScreen(
-                onRegisterSuccess = {
-                    navController.navigate("patient/home") {
+                onRegisterSuccess = { role ->
+                    val dest = if (role == "NURSE") "nurse/groups" else "patient/home"
+                    navController.navigate(dest) {
                         popUpTo("auth/login") { inclusive = true }
                     }
                 },

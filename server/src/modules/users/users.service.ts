@@ -21,6 +21,12 @@ export class UsersService {
   }
 
   async bindWechat(id: string, wechatWxid: string) {
+    const existing = await this.prisma.user.findUnique({
+      where: { wechatWxid },
+    });
+    if (existing && existing.id !== id) {
+      throw new Error('该微信已绑定其他账号');
+    }
     return this.prisma.user.update({
       where: { id },
       data: { wechatWxid, wechatBindAt: new Date() },

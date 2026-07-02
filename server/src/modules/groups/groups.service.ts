@@ -308,8 +308,12 @@ export class GroupsService {
     if (dto.scheduleId) {
       const schedule = await this.prisma.medicationSchedule.findUnique({
         where: { id: dto.scheduleId },
+        include: { medication: true },
       });
-      if (schedule?.isLocked) {
+      if (!schedule || schedule.medication.userId !== memberId) {
+        throw new NotFoundException('排班不存在');
+      }
+      if (schedule.isLocked) {
         throw new ForbiddenException('用药策略已锁定，请先解锁');
       }
 

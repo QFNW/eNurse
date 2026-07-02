@@ -16,7 +16,7 @@ import com.enurse.app.presentation.viewmodel.AuthViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onRegisterSuccess: () -> Unit,
+    onRegisterSuccess: (String) -> Unit,
     onGoBack: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -25,7 +25,9 @@ fun RegisterScreen(
     var role by remember { mutableStateOf("PATIENT") }
     val state by viewModel.state.collectAsState()
 
-    LaunchedEffect(state.success) { if (state.success) onRegisterSuccess() }
+    LaunchedEffect(state.success) {
+        if (state.success) onRegisterSuccess(role)
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("注册账号") }) }

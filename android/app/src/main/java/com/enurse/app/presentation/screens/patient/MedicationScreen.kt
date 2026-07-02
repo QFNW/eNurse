@@ -29,6 +29,13 @@ fun MedicationScreen(onGoBack: () -> Unit) {
         )
         entryPoint.medicationRepository()
     }
+    val userId = remember {
+        val entryPoint = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            MedicationRepoEntryPoint::class.java
+        )
+        entryPoint.tokenDataStore()
+    }
 
     var medications by remember { mutableStateOf<List<MedicationResponse>>(emptyList()) }
     var showAdd by remember { mutableStateOf(false) }
@@ -65,8 +72,9 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                 TextButton(onClick = {
                                     scope.launch {
+                                        val uid = kotlinx.coroutines.runBlocking { userId.userId.first() } ?: ""
                                         val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(java.util.Date())
-                                        repo.record(med.id, now)
+                                        repo.record(uid, med.id, now)
                                             .onSuccess {
                                                 snackbarHostState.showSnackbar("打卡成功")
                                                 refreshMeds()
@@ -126,4 +134,5 @@ fun MedicationScreen(onGoBack: () -> Unit) {
 @EntryPoint @InstallIn(SingletonComponent::class)
 interface MedicationRepoEntryPoint {
     fun medicationRepository(): MedicationRepository
+    fun tokenDataStore(): com.enurse.app.data.local.datastore.TokenDataStore
 }
