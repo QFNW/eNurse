@@ -77,10 +77,12 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                                         try {
                                             repo.deleteMedication(med.id)
                                             snackbarHostState.showSnackbar("已删除")
-                                            refreshMeds()
                                         } catch (e: Exception) {
                                             snackbarHostState.showSnackbar("删除失败: ${e.message}")
+                                            return@launch
                                         }
+                                        // Refresh after successful delete (best-effort)
+                                        try { refreshMeds() } catch (_: Exception) {}
                                     }
                                 }) { Text("删除", color = MaterialTheme.colorScheme.error) }
                             }

@@ -105,8 +105,15 @@ export class AlertEngineService {
       alert.message,
     );
     if (!enqueued) {
-      await this.prisma.alert.delete({ where: { id: alert.id } });
-      this.logger.warn(`Alert ${alert.id} deleted — will retry next cron`);
+      try {
+        await this.prisma.alert.delete({ where: { id: alert.id } });
+        this.logger.warn(`Alert ${alert.id} deleted — will retry next cron`);
+      } catch (delErr: any) {
+        this.logger.error(
+          `Failed to delete unenqueued alert ${alert.id}: ${delErr.message} — ` +
+          'alert will be skipped by dedup until it expires, then recreated',
+        );
+      }
     }
   }
 
@@ -217,8 +224,15 @@ export class AlertEngineService {
       alert.message,
     );
     if (!enqueued) {
-      await this.prisma.alert.delete({ where: { id: alert.id } });
-      this.logger.warn(`Alert ${alert.id} deleted — will retry next cron`);
+      try {
+        await this.prisma.alert.delete({ where: { id: alert.id } });
+        this.logger.warn(`Alert ${alert.id} deleted — will retry next cron`);
+      } catch (delErr: any) {
+        this.logger.error(
+          `Failed to delete unenqueued alert ${alert.id}: ${delErr.message} — ` +
+          'alert will be skipped by dedup until it expires, then recreated',
+        );
+      }
     }
   }
 
@@ -231,36 +245,32 @@ export class AlertEngineService {
     type: AlertType,
     message: string,
   ): Promise<boolean> {
+    // Phase 1: enqueue the immediate send (critical)
     try {
       await this.alertsQueue.add('send-wechat-alert', {
-        alertId,
-        userId,
-        type,
-        message,
-        retryCount: 0,
-        isRetry: false,
+        alertId, userId, type, message,
+        retryCount: 0, isRetry: false,
       } as AlertJobData);
+    } catch (err: any) {
+      this.logger.error(`Failed to enqueue send for alert ${alertId}: ${err.message}`);
+      return false;
+    }
 
-      const retryDelay =
-        type === AlertType.MEDICATION_REMINDER
-          ? 15 * 60 * 1000
-          : 2 * 60 * 60 * 1000;
-
+    // Phase 2: schedule retry (best-effort, non-critical)
+    const retryDelay =
+      type === AlertType.MEDICATION_REMINDER ? 15 * 60 * 1000 : 2 * 60 * 60 * 1000;
+    try {
       await this.alertsQueue.add(
         'schedule-retry',
         { alertId, userId, type, message, retryCount: 0, isRetry: true } as AlertJobData,
         { delay: retryDelay },
       );
-
       this.logger.log(`Alert ${alertId} enqueued — retry in ${retryDelay / 1000}s`);
-      return true;
     } catch (err: any) {
-      this.logger.error(
-        `Failed to enqueue alert ${alertId}: ${err.message}. ` +
-        'Alert will be deleted and recreated next cron cycle.',
-      );
-      return false;
+      this.logger.warn(`Failed to schedule retry for alert ${alertId}: ${err.message} — will retry via next cron`);
     }
+
+    return true;
   }
 
   /**

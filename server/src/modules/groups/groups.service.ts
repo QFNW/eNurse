@@ -443,17 +443,26 @@ export class GroupsService {
       if (!existing) return code;
     }
 
-    // Fallback: random alphanumeric with DB uniqueness check
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const code = suffix.padStart(8, '0');
+    // Fallback: generate random codes with DB check
+    for (let attempt = 0; attempt < 5; attempt++) {
+      let code = '';
+      for (let i = 0; i < 8; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
+      }
       const existing = await this.prisma.group.findUnique({
         where: { inviteCode: code },
       });
       if (!existing) return code;
     }
-    // Last resort: timestamp-based
-    const ts = Date.now().toString(36).toUpperCase().slice(-8);
-    return ts.padStart(8, '0');
+    // Last resort: crypto-random hex + DB check
+    const crypto = await import('crypto');
+    const hex = crypto.randomBytes(6).toString('hex').toUpperCase().slice(0, 8);
+    const existing = await this.prisma.group.findUnique({
+      where: { inviteCode: hex },
+    });
+    if (!existing) return hex;
+    // Ultra-fallback: timestamp suffix
+    const ts = Date.now().toString(36).toUpperCase();
+    return ts.slice(-8).padStart(8, 'X');
   }
 }

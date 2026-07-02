@@ -55,7 +55,10 @@ class BmRepositoryImpl @Inject constructor(
         ))
         pendingSyncDao.insert(PendingSyncEntity(
             type = "bm_record",
-            jsonData = Gson().toJson(mapOf("recordedAt" to recordedAt, "notes" to notes)),
+            jsonData = Gson().toJson(mapOf(
+                "recordedAt" to recordedAt,
+                "notes" to (notes ?: "")
+            )),
             localRecordId = id
         ))
     }

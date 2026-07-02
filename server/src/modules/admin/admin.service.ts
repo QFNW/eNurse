@@ -33,8 +33,8 @@ export class AdminService {
     } else {
       // Dev-only plaintext fallback — refuse in production
       if (process.env.NODE_ENV === 'production') {
-        throw new UnauthorizedException(
-          '管理员密码未配置（ADMIN_PASSWORD_HASH 未设置）',
+        throw new BadRequestException(
+          '服务配置错误：管理员密码未设置。请联系系统管理员配置 ADMIN_PASSWORD_HASH。',
         );
       }
       const devPassword =

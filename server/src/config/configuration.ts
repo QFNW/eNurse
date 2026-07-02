@@ -12,17 +12,16 @@ function requireSecret(
   envValue: string | undefined,
   defaultValue: string,
 ): string {
-  const value = envValue || defaultValue;
-  const isExplicitlySet = envValue !== undefined;
-
-  if (!isExplicitlySet && process.env.NODE_ENV === 'production') {
-    throw new Error(
-      `Security: ${name} is not set. ` +
-      'It must be configured via environment variable in production.',
-    );
-  }
+  const isExplicitlySet = envValue !== undefined && envValue !== '';
+  const value = isExplicitlySet ? envValue! : defaultValue;
 
   if (!isExplicitlySet) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        `Security: ${name} is not set (empty or missing). ` +
+        'It must be configured via environment variable in production.',
+      );
+    }
     logger.warn(
       `⚠ ${name} not set — using default (NOT safe for production)`,
     );
