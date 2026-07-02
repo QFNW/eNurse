@@ -48,10 +48,21 @@ export class GroupsService {
         orderBy: { createdAt: 'desc' },
       });
     }
-    // Patient sees groups they belong to
+    // Patient sees groups they belong to (exclude inviteCode)
     const memberships = await this.prisma.groupMember.findMany({
       where: { userId },
-      include: { group: true },
+      include: {
+        group: {
+          select: {
+            id: true,
+            name: true,
+            createdBy: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: { select: { members: true } },
+          },
+        },
+      },
     });
     return memberships.map((m) => m.group);
   }
@@ -73,8 +84,14 @@ export class GroupsService {
     if (!group) throw new NotFoundException('小组不存在');
 
     // Verify user is a member
-    const isMember = group.members.some((m) => m.userId === userId);
-    if (!isMember) throw new ForbiddenException('无权访问该小组');
+    const memberEntry = group.members.find((m) => m.userId === userId);
+    if (!memberEntry) throw new ForbiddenException('无权访问该小组');
+
+    // Exclude inviteCode for non-owners
+    if (memberEntry.roleInGroup !== 'OWNER') {
+      const { inviteCode, ...rest } = group;
+      return rest;
+    }
 
     return group;
   }
@@ -113,7 +130,7 @@ export class GroupsService {
 
     // Check already in a group (PATIENT: max 1 group)
     const existingMembership = await this.prisma.groupMember.findFirst({
-      where: { userId, group: { members: { some: { userId } } } },
+      where: { userId },
     });
     if (existingMembership) {
       throw new BadRequestException('已加入其他小组，每个患者最多属于一个小组');
@@ -413,15 +430,21 @@ export class GroupsService {
 
   private async generateInviteCode(): Promise<string> {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
+    const maxRetries = 5;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      let code = '';
+      for (let i = 0; i < 8; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
+      }
+      const existing = await this.prisma.group.findUnique({
+        where: { inviteCode: code },
+      });
+      if (!existing) return code;
     }
-    // Ensure uniqueness
-    const existing = await this.prisma.group.findUnique({
-      where: { inviteCode: code },
-    });
-    if (existing) return this.generateInviteCode();
-    return code;
+
+    // Fallback: append random suffix
+    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return suffix.padStart(8, 'X');
   }
 }

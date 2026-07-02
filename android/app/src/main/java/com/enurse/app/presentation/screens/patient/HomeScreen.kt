@@ -53,8 +53,9 @@ fun HomeScreen(
 
             if (state.recordSuccess) {
                 Text("打卡成功！", color = MaterialTheme.colorScheme.primary)
-                LaunchedEffect(Unit) {
+                LaunchedEffect(state.recordSuccess) {
                     kotlinx.coroutines.delay(2000)
+                    viewModel.clearRecordSuccess()
                 }
             }
 

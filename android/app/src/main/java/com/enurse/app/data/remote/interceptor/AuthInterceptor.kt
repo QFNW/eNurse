@@ -8,6 +8,12 @@ import okhttp3.Response
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Attaches the Bearer JWT token to every request.
+ * Uses runBlocking for the DataStore read — acceptable because
+ * DataStore reads are fast (~1ms) and OkHttp interceptors are synchronous.
+ * Token refresh on 401 is handled by the repository layer.
+ */
 @Singleton
 class AuthInterceptor @Inject constructor(
     private val tokenDataStore: TokenDataStore
@@ -24,19 +30,6 @@ class AuthInterceptor @Inject constructor(
             chain.request()
         }
 
-        val response = chain.proceed(request)
-
-        // If 401, try refresh token (handled in repository layer too)
-        if (response.code == 401) {
-            val newToken = runBlocking { tokenDataStore.accessToken.first() }
-            if (newToken != token && newToken != null) {
-                val retryRequest = chain.request().newBuilder()
-                    .header("Authorization", "Bearer $newToken")
-                    .build()
-                return chain.proceed(retryRequest)
-            }
-        }
-
-        return response
+        return chain.proceed(request)
     }
 }

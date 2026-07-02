@@ -21,20 +21,28 @@ class BmRepositoryImpl @Inject constructor(
     private val pendingSyncDao: PendingSyncDao
 ) : BmRepository {
 
-    override suspend fun record(userId: String, recordedAt: String, notes: String?): Result<BmRecordResponse> =
-        runCatching {
-            val body = mutableMapOf("recordedAt" to recordedAt)
-            notes?.let { body["notes"] = it }
-            val res = bmApi.createRecord(body)
-            // Cache locally
+    override suspend fun record(userId: String, recordedAt: String, notes: String?): Result<BmRecordResponse> {
+        val body = mutableMapOf("recordedAt" to recordedAt)
+        notes?.let { body["notes"] = it }
+
+        // API call first — if it fails, don't cache locally
+        val apiResult = runCatching { bmApi.createRecord(body) }
+        if (apiResult.isFailure) return apiResult
+
+        val res = apiResult.getOrThrow()
+        // Cache locally (best-effort, failure is non-fatal since server has the record)
+        try {
             val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
             bmRecordDao.insert(BmRecordEntity(
                 id = res.id, userId = userId,
                 recordedAt = sdf.parse(res.recordedAt)?.time ?: System.currentTimeMillis(),
                 notes = res.notes, synced = true
             ))
-            res
+        } catch (_: Exception) {
+            // Local cache failure is non-fatal — data exists on server
         }
+        return Result.success(res)
+    }
 
     override suspend fun recordOffline(userId: String, recordedAt: String, notes: String?) {
         val id = "local_${UUID.randomUUID()}"
@@ -78,8 +86,23 @@ class BmRepositoryImpl @Inject constructor(
         for (item in unsynced) {
             try {
                 val data = Gson().fromJson(item.jsonData, Map::class.java) as Map<String, String>
-                when (item.type) {
+                val serverRecord = when (item.type) {
                     "bm_record" -> bmApi.createRecord(data)
+                    else -> null
+                }
+                // Update local entity with server ID and synced flag
+                if (serverRecord != null) {
+                    bmRecordDao.delete(BmRecordEntity(
+                        id = "", userId = "", recordedAt = 0
+                    )) // will be handled by the server ID
+                    bmRecordDao.insert(BmRecordEntity(
+                        id = serverRecord.id,
+                        userId = serverRecord.userId,
+                        recordedAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+                            .parse(serverRecord.recordedAt)?.time ?: System.currentTimeMillis(),
+                        notes = serverRecord.notes,
+                        synced = true
+                    ))
                 }
                 pendingSyncDao.delete(item)
             } catch (_: Exception) { /* retry later */ }

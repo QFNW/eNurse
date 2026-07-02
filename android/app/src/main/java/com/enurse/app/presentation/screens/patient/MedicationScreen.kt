@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.enurse.app.data.remote.dto.response.MedicationResponse
@@ -15,11 +14,13 @@ import androidx.compose.ui.platform.LocalContext
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicationScreen(onGoBack: () -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val repo = remember {
         val entryPoint = EntryPointAccessors.fromApplication(
             context.applicationContext,
@@ -57,13 +58,13 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                             med.dosage?.let { Text("剂量: $it") }
                             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                 TextButton(onClick = {
-                                    kotlinx.coroutines.MainScope().launch {
+                                    scope.launch {
                                         val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(java.util.Date())
                                         repo.record(med.id, now)
                                     }
                                 }) { Text("打卡") }
                                 TextButton(onClick = {
-                                    kotlinx.coroutines.MainScope().launch {
+                                    scope.launch {
                                         repo.deleteMedication(med.id)
                                         repo.getMedications().onSuccess { medications = it }
                                     }
@@ -88,7 +89,7 @@ fun MedicationScreen(onGoBack: () -> Unit) {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    kotlinx.coroutines.MainScope().launch {
+                    scope.launch {
                         repo.createMedication(newName, newDosage.ifBlank { null })
                             .onSuccess { repo.getMedications().onSuccess { medications = it } }
                         showAdd = false; newName = ""; newDosage = ""
@@ -103,9 +104,4 @@ fun MedicationScreen(onGoBack: () -> Unit) {
 @EntryPoint @InstallIn(SingletonComponent::class)
 interface MedicationRepoEntryPoint {
     fun medicationRepository(): MedicationRepository
-}
-
-private fun kotlinx.coroutines.MainScope() = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
-private fun kotlinx.coroutines.CoroutineScope.launch(block: suspend () -> Unit) {
-    kotlinx.coroutines.GlobalScope.launch { block() }
 }

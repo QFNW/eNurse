@@ -68,4 +68,8 @@ class HomeViewModel @Inject constructor(
             loadAlerts()
         }
     }
+
+    fun clearRecordSuccess() {
+        _state.value = _state.value.copy(recordSuccess = false, error = null)
+    }
 }

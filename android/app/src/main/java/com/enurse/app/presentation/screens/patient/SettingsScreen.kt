@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.enurse.app.domain.repository.GroupRepository
 import com.enurse.app.presentation.viewmodel.BmViewModel
@@ -22,6 +23,7 @@ fun SettingsScreen(
     bmViewModel: BmViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val groupRepo = remember {
         val ep = EntryPointAccessors.fromApplication(context.applicationContext, GroupRepoEntryPoint::class.java)
         ep.groupRepository()
@@ -79,7 +81,7 @@ fun SettingsScreen(
             if (joinError != null) Text(joinError!!, color = MaterialTheme.colorScheme.error)
             Spacer(modifier = Modifier.height(8.dp))
             Button(onClick = {
-                kotlinx.coroutines.GlobalScope.launch {
+                scope.launch {
                     groupRepo.joinByInvite(inviteCode)
                         .onSuccess { joinError = "加入成功！" }
                         .onFailure { joinError = it.message }

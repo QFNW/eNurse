@@ -2,10 +2,15 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Role } from '../../../generated/prisma/client';
+
+const VALID_ROLES: Role[] = ['PATIENT', 'NURSE', 'ADMIN'];
 
 @Injectable()
 export class AdminService {
@@ -16,18 +21,30 @@ export class AdminService {
   ) {}
 
   async login(password: string) {
-    const adminPassword = this.configService.get<string>('admin.password') ||
-      process.env.ADMIN_PASSWORD ||
-      'admin_enurse_2026';
+    const storedHash =
+      this.configService.get<string>('admin.passwordHash') ||
+      process.env.ADMIN_PASSWORD_HASH;
 
-    if (password !== adminPassword) {
-      throw new UnauthorizedException('管理员密码错误');
+    if (storedHash) {
+      const valid = await bcrypt.compare(password, storedHash);
+      if (!valid) {
+        throw new UnauthorizedException('管理员密码错误');
+      }
+    } else {
+      // Dev-only plaintext fallback — insecure, remove in production
+      const devPassword =
+        process.env.ADMIN_PASSWORD || 'admin_enurse_2026';
+      if (password !== devPassword) {
+        throw new UnauthorizedException('管理员密码错误');
+      }
     }
 
     const token = await this.jwtService.signAsync(
-      { role: 'ADMIN' },
+      { sub: 'admin', role: 'ADMIN' },
       {
-        secret: this.configService.get<string>('jwt.accessSecret') || 'dev-access-secret',
+        secret:
+          this.configService.get<string>('jwt.accessSecret') ||
+          'dev-access-secret',
         expiresIn: '2h',
       },
     );
@@ -67,6 +84,12 @@ export class AdminService {
   }
 
   async updateUserRole(userId: string, role: string) {
+    if (!VALID_ROLES.includes(role as Role)) {
+      throw new BadRequestException(
+        `无效的角色: ${role}。有效值: ${VALID_ROLES.join(', ')}`,
+      );
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -74,7 +97,7 @@ export class AdminService {
 
     return this.prisma.user.update({
       where: { id: userId },
-      data: { role: role as any },
+      data: { role: role as Role },
       select: { id: true, email: true, nickname: true, role: true },
     });
   }
@@ -85,11 +108,15 @@ export class AdminService {
     });
     if (!user) throw new NotFoundException('用户不存在');
 
-    // Soft disable by clearing password (forces password reset)
-    // Alternative: add an isDisabled field to User model
+    // Replace password with a random hash so user cannot log in
+    const randomHash = await bcrypt.hash(
+      `disabled_${userId}_${Date.now()}`,
+      6,
+    );
+
     return this.prisma.user.update({
       where: { id: userId },
-      data: { role: 'PATIENT' }, // downgrade to patient on disable
+      data: { passwordHash: randomHash },
       select: { id: true, email: true, role: true },
     });
   }
