@@ -4,6 +4,9 @@ import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { BmModule } from './modules/bm/bm.module';
+import { MedicationsModule } from './modules/medications/medications.module';
+import { AlertsModule } from './modules/alerts/alerts.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ValidationPipe } from '@nestjs/common';
@@ -18,6 +21,9 @@ import configuration from './config/configuration';
     PrismaModule,
     AuthModule,
     UsersModule,
+    BmModule,
+    MedicationsModule,
+    AlertsModule,
   ],
   providers: [
     {
