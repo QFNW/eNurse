@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========== 用户与认证 ==========
+
+enum Role {
+  PATIENT
+  NURSE
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  nickname      String?
+  role          Role      @default(PATIENT)
+  wechatWxid    String?   @unique
+  wechatBindAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bmRecords           BmRecord[]
+  medications         Medication[]
+  bmReminderSetting   BmReminderSetting?
+  alerts              Alert[]
+  groupMemberships    GroupMember[]
+  createdGroups       Group[]              @relation("GroupCreator")
+
+  @@map("users")
+}
+
+// ========== 小组 ==========
+
+enum GroupMemberRole {
+  OWNER
+  MEMBER
+}
+
+model Group {
+  id          String    @id @default(cuid())
+  name        String
+  inviteCode  String    @unique
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  creator     User      @relation("GroupCreator", fields: [createdBy], references: [id])
+  members     GroupMember[]
+  groupAlerts GroupAlert[]
+
+  @@index([inviteCode])
+  @@map("groups")
+}
+
+model GroupMember {
+  id          String           @id @default(cuid())
+  groupId     String
+  userId      String
+  roleInGroup GroupMemberRole  @default(MEMBER)
+  joinedAt    DateTime         @default(now())
+
+  group       Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+// ========== 大便系统 ==========
+
+model BmRecord {
+  id          String    @id @default(cuid())
+  userId      String
+  recordedAt  DateTime
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
+  @@map("bm_records")
+}
+
+model BmReminderSetting {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  intervalDays  Int      @default(1)
+  reminderTime  String   @default("08:00")
+  isEnabled     Boolean  @default(true)
+  isLocked      Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("bm_reminder_settings")
+}
+
+// ========== 用药系统 ==========
+
+enum ScheduleType {
+  INTERVAL
+  FIXED_TIME
+}
+
+model Medication {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  dosage      String?
+  unit        String?
+  notes       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedules   MedicationSchedule[]
+  records     MedicationRecord[]
+
+  @@index([userId])
+  @@map("medications")
+}
+
+model MedicationSchedule {
+  id            String        @id @default(cuid())
+  medicationId  String
+  scheduleType  ScheduleType
+  intervalHours Int?
+  fixedTimes    Json?
+  startTime     DateTime?
+  isEnabled     Boolean       @default(true)
+  isLocked      Boolean       @default(false)
+  updatedAt     DateTime      @updatedAt
+
+  medication    Medication    @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@map("medication_schedules")
+}
+
+model MedicationRecord {
+  id            String     @id @default(cuid())
+  medicationId  String
+  userId        String
+  takenAt       DateTime
+  createdAt     DateTime   @default(now())
+
+  medication    Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, takenAt])
+  @@map("medication_records")
+}
+
+// ========== 警报系统 ==========
+
+enum AlertType {
+  BM_REMINDER
+  MEDICATION_REMINDER
+}
+
+enum AlertChannel {
+  WECHAT_PRIVATE
+  WECHAT_GROUP
+}
+
+model Alert {
+  id          String      @id @default(cuid())
+  userId      String
+  type        AlertType
+  message     String
+  isResolved  Boolean     @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime    @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentAlerts  SentAlert[]
+
+  @@index([userId, isResolved, createdAt])
+  @@map("alerts")
+}
+
+model SentAlert {
+  id         String       @id @default(cuid())
+  alertId    String
+  channel    AlertChannel
+  sentAt     DateTime     @default(now())
+  retryCount Int          @default(0)
+  maxRetry   Int          @default(0)
+  isAcked    Boolean      @default(false)
+
+  alert      Alert        @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId])
+  @@map("sent_alerts")
+}
+
+model GroupAlert {
+  id         String    @id @default(cuid())
+  groupId    String
+  alertId    String
+  sentAt     DateTime  @default(now())
+  isResolved Boolean   @default(false)
+
+  group      Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, isResolved])
+  @@map("group_alerts")
+}
