@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class UsersService {
       where: { wechatWxid },
     });
     if (existing && existing.id !== id) {
-      throw new Error('该微信已绑定其他账号');
+      throw new ConflictException('该微信已绑定其他账号');
     }
     return this.prisma.user.update({
       where: { id },

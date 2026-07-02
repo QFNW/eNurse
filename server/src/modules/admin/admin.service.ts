@@ -107,11 +107,17 @@ export class AdminService {
     });
   }
 
-  async disableUser(userId: string) {
+  async disableUser(userId: string, requesterId?: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
     if (!user) throw new NotFoundException('用户不存在');
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('不能禁用管理员账号');
+    }
+    if (requesterId && userId === requesterId) {
+      throw new BadRequestException('不能禁用自己的账号');
+    }
 
     // Replace password with a random hash so user cannot log in
     const randomHash = await bcrypt.hash(

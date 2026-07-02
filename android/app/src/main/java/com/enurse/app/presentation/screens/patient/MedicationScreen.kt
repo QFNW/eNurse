@@ -72,7 +72,7 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                 TextButton(onClick = {
                                     scope.launch {
-                                        val uid = kotlinx.coroutines.runBlocking { userId.userId.first() } ?: ""
+                                        val uid = userId.userId.first() ?: ""
                                         val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(java.util.Date())
                                         repo.record(uid, med.id, now)
                                             .onSuccess {

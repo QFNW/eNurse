@@ -240,7 +240,10 @@ export class GroupsService {
         take: 50,
       }),
       this.prisma.alert.findMany({
-        where: { userId: memberId },
+        where: {
+          userId: memberId,
+          ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
+        },
         orderBy: { createdAt: 'desc' },
         take: 20,
       }),

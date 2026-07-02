@@ -60,7 +60,7 @@ class AuthInterceptor @Inject constructor(
 
             val body = Gson().toJson(mapOf("refreshToken" to refreshToken))
             val refreshRequest = Request.Builder()
-                .url(getBaseUrl(chain = null) + "auth/refresh")
+                .url(getBaseUrl() + "auth/refresh")
                 .post(body.toRequestBody(JSON))
                 .build()
 
@@ -83,10 +83,7 @@ class AuthInterceptor @Inject constructor(
         }
     }
 
-    private fun getBaseUrl(chain: Interceptor.Chain?): String {
-        // Use the original request URL to infer base
-        return "http://10.0.2.2:3000/api/v1/"
-    }
+    private fun getBaseUrl(): String = "http://10.0.2.2:3000/api/v1/"
 
     private fun attachToken(
         chain: Interceptor.Chain,

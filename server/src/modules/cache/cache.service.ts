@@ -32,7 +32,11 @@ export class CacheService implements OnModuleDestroy {
     try {
       return (await this.redis.exists(`blacklist:${key}`)) === 1;
     } catch {
-      return false; // Fail open if Redis is down
+      // Fail closed in production, open in dev
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Redis unavailable — token validation failed');
+      }
+      return false;
     }
   }
 

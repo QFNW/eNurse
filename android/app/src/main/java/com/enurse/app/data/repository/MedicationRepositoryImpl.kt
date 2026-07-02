@@ -23,10 +23,6 @@ class MedicationRepositoryImpl @Inject constructor(
     private val tokenDataStore: TokenDataStore
 ) : MedicationRepository {
 
-    private fun getUserId(): String {
-        return runBlocking { tokenDataStore.userId.first() } ?: ""
-    }
-
     override suspend fun getMedications(): Result<List<MedicationResponse>> =
         runCatching { medicationApi.getAll() }
 

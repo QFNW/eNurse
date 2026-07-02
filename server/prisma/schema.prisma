@@ -27,6 +27,7 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   bmRecords           BmRecord[]
+  medicationRecords   MedicationRecord[]
   medications         Medication[]
   bmReminderSetting   BmReminderSetting?
   alerts              Alert[]
@@ -153,6 +154,7 @@ model MedicationRecord {
   createdAt     DateTime   @default(now())
 
   medication    Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, takenAt])
   @@map("medication_records")

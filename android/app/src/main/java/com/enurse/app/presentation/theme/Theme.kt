@@ -31,7 +31,7 @@ fun eNurseTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = LightColors,
+        colorScheme = if (darkTheme) darkColorScheme() else LightColors,
         content = content
     )
 }
