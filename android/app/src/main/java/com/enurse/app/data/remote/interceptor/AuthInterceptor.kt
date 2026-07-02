@@ -10,9 +10,8 @@ import javax.inject.Singleton
 
 /**
  * Attaches the Bearer JWT token to every request.
- * Uses runBlocking for the DataStore read — acceptable because
- * DataStore reads are fast (~1ms) and OkHttp interceptors are synchronous.
- * Token refresh on 401 is handled by the repository layer.
+ * On 401, re-reads token from DataStore (may have been refreshed
+ * by a parallel login/refresh request) and retries once.
  */
 @Singleton
 class AuthInterceptor @Inject constructor(
@@ -22,14 +21,29 @@ class AuthInterceptor @Inject constructor(
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = runBlocking { tokenDataStore.accessToken.first() }
 
-        val request = if (token != null) {
-            chain.request().newBuilder()
-                .addHeader("Authorization", "Bearer $token")
-                .build()
-        } else {
-            chain.request()
+        val request = attachToken(chain, token)
+        val response = chain.proceed(request)
+
+        // On 401, re-read token and retry once (token may have been refreshed)
+        if (response.code == 401) {
+            val newToken = runBlocking { tokenDataStore.accessToken.first() }
+            if (newToken != null && newToken != token) {
+                response.close()
+                return chain.proceed(attachToken(chain, newToken))
+            }
         }
 
-        return chain.proceed(request)
+        return response
+    }
+
+    private fun attachToken(
+        chain: Interceptor.Chain,
+        token: String?,
+    ) = if (token != null) {
+        chain.request().newBuilder()
+            .addHeader("Authorization", "Bearer $token")
+            .build()
+    } else {
+        chain.request()
     }
 }

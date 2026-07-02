@@ -2,19 +2,33 @@ import { Logger } from '@nestjs/common';
 
 const logger = new Logger('Configuration');
 
-function requireSecret(name: string, value: string | undefined): string {
-  if (!value || value.startsWith('dev-')) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error(
-        `Security: ${name} is not set or uses a dev default. ` +
-        'Set it in the environment for production.',
-      );
-    }
-    logger.warn(
-      `⚠ ${name} uses default/dev value — NOT safe for production`,
+/**
+ * Validate that a required secret is configured.
+ * In production, refuses to use inline defaults.
+ * Does NOT reject user-configured values that happen to contain 'dev-'.
+ */
+function requireSecret(
+  name: string,
+  envValue: string | undefined,
+  defaultValue: string,
+): string {
+  const value = envValue || defaultValue;
+  const isExplicitlySet = envValue !== undefined;
+
+  if (!isExplicitlySet && process.env.NODE_ENV === 'production') {
+    throw new Error(
+      `Security: ${name} is not set. ` +
+      'It must be configured via environment variable in production.',
     );
   }
-  return value || '';
+
+  if (!isExplicitlySet) {
+    logger.warn(
+      `⚠ ${name} not set — using default (NOT safe for production)`,
+    );
+  }
+
+  return value;
 }
 
 export default () => ({
@@ -22,12 +36,14 @@ export default () => ({
   jwt: {
     accessSecret: requireSecret(
       'ACCESS_TOKEN_SECRET',
-      process.env.ACCESS_TOKEN_SECRET || 'dev-access-secret',
+      process.env.ACCESS_TOKEN_SECRET,
+      'dev-access-secret',
     ),
     accessExpiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN || '15m',
     refreshSecret: requireSecret(
       'REFRESH_TOKEN_SECRET',
-      process.env.REFRESH_TOKEN_SECRET || 'dev-refresh-secret',
+      process.env.REFRESH_TOKEN_SECRET,
+      'dev-refresh-secret',
     ),
     refreshExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d',
   },

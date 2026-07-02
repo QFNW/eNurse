@@ -40,7 +40,6 @@ export class AlertEngineService {
         this.logger.error(
           `BM check failed for user ${setting.userId}: ${err.message}`,
         );
-        // Continue to next user instead of aborting all
       }
     }
   }
@@ -50,9 +49,18 @@ export class AlertEngineService {
     now: Date,
     currentTime: string,
   ) {
-    if (!this.isTimeMatch(currentTime, setting.reminderTime)) return;
+    // Guard: intervalDays must be >= 1
+    const intervalDays = Math.max(1, setting.intervalDays || 1);
+    if (setting.intervalDays < 1) {
+      this.logger.warn(
+        `User ${setting.userId} has intervalDays=${setting.intervalDays}, clamping to 1`,
+      );
+    }
 
-    const checkDays = setting.intervalDays - 1;
+    // BM uses ±2 min tolerance to cover all 5-min cron slots
+    if (!this.isTimeMatch(currentTime, 2, setting.reminderTime)) return;
+
+    const checkDays = intervalDays - 1;
     const checkSince = new Date(now);
     checkSince.setDate(checkSince.getDate() - checkDays);
     checkSince.setHours(0, 0, 0, 0);
@@ -75,9 +83,9 @@ export class AlertEngineService {
     if (existingAlert) return;
 
     const daysText =
-      setting.intervalDays === 1
+      intervalDays === 1
         ? '今天还未记录大便'
-        : `已连续${setting.intervalDays - 1}天未记录大便`;
+        : `已连续${intervalDays - 1}天未记录大便`;
 
     const alert = await this.prisma.alert.create({
       data: {
@@ -89,7 +97,17 @@ export class AlertEngineService {
 
     this.logger.log(`BM alert ${alert.id} created for user ${setting.userId}`);
 
-    await this.enqueueAlert(alert.id, setting.userId, alert.type, alert.message);
+    // If enqueue fails, delete the alert so dedup doesn't block retry next cron
+    const enqueued = await this.enqueueAlert(
+      alert.id,
+      setting.userId,
+      alert.type,
+      alert.message,
+    );
+    if (!enqueued) {
+      await this.prisma.alert.delete({ where: { id: alert.id } });
+      this.logger.warn(`Alert ${alert.id} deleted — will retry next cron`);
+    }
   }
 
   /** Check medication schedules every minute */
@@ -118,7 +136,6 @@ export class AlertEngineService {
         this.logger.error(
           `Medication check failed for medication ${schedule.medicationId}: ${err.message}`,
         );
-        // Continue to next schedule
       }
     }
   }
@@ -133,16 +150,25 @@ export class AlertEngineService {
 
     if (schedule.scheduleType === 'FIXED_TIME') {
       const times = this.parseFixedTimes(schedule.fixedTimes);
-      if (times.length > 0 && this.isTimeMatch(currentTime, ...times)) {
+      // Medication uses ±1 min tolerance (1-min cron)
+      if (times.length > 0 && this.isTimeMatch(currentTime, 1, ...times)) {
         shouldRemind = true;
       }
     } else if (schedule.scheduleType === 'INTERVAL') {
       const intervalHours = schedule.intervalHours || 8;
-      // Only trigger if startTime is set; skip if null (no default to now)
-      if (!schedule.startTime) return;
+      if (!schedule.startTime) {
+        this.logger.warn(
+          `INTERVAL schedule ${schedule.id} has no startTime — auto-setting to now`,
+        );
+        await this.prisma.medicationSchedule.update({
+          where: { id: schedule.id },
+          data: { startTime: now },
+        });
+        schedule.startTime = now;
+      }
       const hoursSinceStart =
-        (now.getTime() - new Date(schedule.startTime).getTime()) / (1000 * 60 * 60);
-      // Use a 1-minute window: round to nearest minute to avoid float issues
+        (now.getTime() - new Date(schedule.startTime).getTime()) /
+        (1000 * 60 * 60);
       const roundedHours = Math.round(hoursSinceStart * 60) / 60;
       if (roundedHours > 0 && roundedHours % intervalHours < 1 / 60) {
         shouldRemind = true;
@@ -184,16 +210,27 @@ export class AlertEngineService {
 
     this.logger.log(`Medication alert ${alert.id} created for user ${userId}`);
 
-    await this.enqueueAlert(alert.id, userId, alert.type, alert.message);
+    const enqueued = await this.enqueueAlert(
+      alert.id,
+      userId,
+      alert.type,
+      alert.message,
+    );
+    if (!enqueued) {
+      await this.prisma.alert.delete({ where: { id: alert.id } });
+      this.logger.warn(`Alert ${alert.id} deleted — will retry next cron`);
+    }
   }
 
-  /** Push alert to Bull queue for WeChat sending + schedule retry */
+  /**
+   * Push alert to Bull queue. Returns true if successful, false if failed.
+   */
   private async enqueueAlert(
     alertId: string,
     userId: string,
     type: AlertType,
     message: string,
-  ) {
+  ): Promise<boolean> {
     try {
       await this.alertsQueue.add('send-wechat-alert', {
         alertId,
@@ -216,31 +253,40 @@ export class AlertEngineService {
       );
 
       this.logger.log(`Alert ${alertId} enqueued — retry in ${retryDelay / 1000}s`);
+      return true;
     } catch (err: any) {
       this.logger.error(
         `Failed to enqueue alert ${alertId}: ${err.message}. ` +
-        'Alert exists in DB but was not sent to WeChat. Will be picked up on next cron.',
+        'Alert will be deleted and recreated next cron cycle.',
       );
+      return false;
     }
   }
 
   /**
-   * Safely parse fixedTimes from JSON, returning only valid string arrays.
+   * Safely parse fixedTimes from JSON, returning only valid HH:MM strings.
    */
   private parseFixedTimes(raw: any): string[] {
     if (!Array.isArray(raw)) return [];
     return raw.filter(
       (t): t is string =>
-        typeof t === 'string' && /^\d{1,2}:\d{2}$/.test(t),
+        typeof t === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(t),
     );
   }
 
-  private isTimeMatch(current: string, ...targets: string[]): boolean {
+  /**
+   * Check if current time matches any target time within tolerance minutes.
+   * @param toleranceMinutes ± minutes to consider a match
+   */
+  private isTimeMatch(
+    current: string,
+    toleranceMinutes: number,
+    ...targets: string[]
+  ): boolean {
     const [cH, cM] = current.split(':').map(Number);
     return targets.some((t) => {
       const [tH, tM] = t.split(':').map(Number);
-      // Exact hour match + within 1 minute to prevent 3-min duplicate window
-      return cH === tH && Math.abs(cM - tM) <= 1;
+      return cH === tH && Math.abs(cM - tM) <= toleranceMinutes;
     });
   }
 }

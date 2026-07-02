@@ -31,7 +31,12 @@ export class AdminService {
         throw new UnauthorizedException('管理员密码错误');
       }
     } else {
-      // Dev-only plaintext fallback — insecure, remove in production
+      // Dev-only plaintext fallback — refuse in production
+      if (process.env.NODE_ENV === 'production') {
+        throw new UnauthorizedException(
+          '管理员密码未配置（ADMIN_PASSWORD_HASH 未设置）',
+        );
+      }
       const devPassword =
         process.env.ADMIN_PASSWORD || 'admin_enurse_2026';
       if (password !== devPassword) {

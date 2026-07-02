@@ -443,8 +443,17 @@ export class GroupsService {
       if (!existing) return code;
     }
 
-    // Fallback: append random suffix
-    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return suffix.padStart(8, 'X');
+    // Fallback: random alphanumeric with DB uniqueness check
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const code = suffix.padStart(8, '0');
+      const existing = await this.prisma.group.findUnique({
+        where: { inviteCode: code },
+      });
+      if (!existing) return code;
+    }
+    // Last resort: timestamp-based
+    const ts = Date.now().toString(36).toUpperCase().slice(-8);
+    return ts.padStart(8, '0');
   }
 }

@@ -8,6 +8,7 @@ import com.enurse.app.data.remote.api.BmApi
 import com.enurse.app.data.remote.dto.response.BmCalendarResponse
 import com.enurse.app.data.remote.dto.response.BmRecordResponse
 import com.enurse.app.data.remote.dto.response.BmSettingsResponse
+import android.util.Log
 import com.enurse.app.domain.repository.BmRepository
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
@@ -38,8 +39,8 @@ class BmRepositoryImpl @Inject constructor(
                 recordedAt = sdf.parse(res.recordedAt)?.time ?: System.currentTimeMillis(),
                 notes = res.notes, synced = true
             ))
-        } catch (_: Exception) {
-            // Local cache failure is non-fatal — data exists on server
+        } catch (e: Exception) {
+            Log.e("BmRepository", "Failed to cache BM record locally", e)
         }
         return Result.success(res)
     }
@@ -54,7 +55,8 @@ class BmRepositoryImpl @Inject constructor(
         ))
         pendingSyncDao.insert(PendingSyncEntity(
             type = "bm_record",
-            jsonData = Gson().toJson(mapOf("recordedAt" to recordedAt, "notes" to notes))
+            jsonData = Gson().toJson(mapOf("recordedAt" to recordedAt, "notes" to notes)),
+            localRecordId = id
         ))
     }
 
@@ -90,11 +92,14 @@ class BmRepositoryImpl @Inject constructor(
                     "bm_record" -> bmApi.createRecord(data)
                     else -> null
                 }
-                // Update local entity with server ID and synced flag
                 if (serverRecord != null) {
-                    bmRecordDao.delete(BmRecordEntity(
-                        id = "", userId = "", recordedAt = 0
-                    )) // will be handled by the server ID
+                    // Delete the old local record by its tracked ID
+                    if (item.localRecordId.isNotEmpty()) {
+                        bmRecordDao.delete(BmRecordEntity(
+                            id = item.localRecordId, userId = "", recordedAt = 0
+                        ))
+                    }
+                    // Insert the server-side record
                     bmRecordDao.insert(BmRecordEntity(
                         id = serverRecord.id,
                         userId = serverRecord.userId,

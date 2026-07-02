@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 fun MedicationScreen(onGoBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val repo = remember {
         val entryPoint = EntryPointAccessors.fromApplication(
             context.applicationContext,
@@ -34,9 +35,11 @@ fun MedicationScreen(onGoBack: () -> Unit) {
     var newName by remember { mutableStateOf("") }
     var newDosage by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
+    suspend fun refreshMeds() {
         repo.getMedications().onSuccess { medications = it }
     }
+
+    LaunchedEffect(Unit) { refreshMeds() }
 
     Scaffold(
         topBar = {
@@ -47,7 +50,8 @@ fun MedicationScreen(onGoBack: () -> Unit) {
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAdd = true }) { Text("+") }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             LazyColumn(modifier = Modifier.padding(16.dp)) {
@@ -61,12 +65,22 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                                     scope.launch {
                                         val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(java.util.Date())
                                         repo.record(med.id, now)
+                                            .onSuccess {
+                                                snackbarHostState.showSnackbar("打卡成功")
+                                                refreshMeds()
+                                            }
+                                            .onFailure { snackbarHostState.showSnackbar("打卡失败: ${it.message}") }
                                     }
                                 }) { Text("打卡") }
                                 TextButton(onClick = {
                                     scope.launch {
-                                        repo.deleteMedication(med.id)
-                                        repo.getMedications().onSuccess { medications = it }
+                                        try {
+                                            repo.deleteMedication(med.id)
+                                            snackbarHostState.showSnackbar("已删除")
+                                            refreshMeds()
+                                        } catch (e: Exception) {
+                                            snackbarHostState.showSnackbar("删除失败: ${e.message}")
+                                        }
                                     }
                                 }) { Text("删除", color = MaterialTheme.colorScheme.error) }
                             }
@@ -91,7 +105,11 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                 TextButton(onClick = {
                     scope.launch {
                         repo.createMedication(newName, newDosage.ifBlank { null })
-                            .onSuccess { repo.getMedications().onSuccess { medications = it } }
+                            .onSuccess {
+                                snackbarHostState.showSnackbar("已添加")
+                                refreshMeds()
+                            }
+                            .onFailure { snackbarHostState.showSnackbar("添加失败: ${it.message}") }
                         showAdd = false; newName = ""; newDosage = ""
                     }
                 }) { Text("添加") }
