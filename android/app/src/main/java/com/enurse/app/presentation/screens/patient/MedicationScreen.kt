@@ -36,7 +36,9 @@ fun MedicationScreen(onGoBack: () -> Unit) {
     var newDosage by remember { mutableStateOf("") }
 
     suspend fun refreshMeds() {
-        repo.getMedications().onSuccess { medications = it }
+        repo.getMedications()
+            .onSuccess { medications = it }
+            .onFailure { snackbarHostState.showSnackbar("加载失败: ${it.message}") }
     }
 
     LaunchedEffect(Unit) { refreshMeds() }
@@ -110,9 +112,9 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                             .onSuccess {
                                 snackbarHostState.showSnackbar("已添加")
                                 refreshMeds()
+                                showAdd = false; newName = ""; newDosage = ""
                             }
                             .onFailure { snackbarHostState.showSnackbar("添加失败: ${it.message}") }
-                        showAdd = false; newName = ""; newDosage = ""
                     }
                 }) { Text("添加") }
             },

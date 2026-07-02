@@ -113,7 +113,7 @@ class BmRepositoryImpl @Inject constructor(
                     ))
                 }
                 pendingSyncDao.delete(item)
-            } catch (_: Exception) { /* retry later */ }
+            } catch (e: Exception) { Log.e("BmRepository", "syncPending failed for item ${item.id}", e) }
         }
     }
 }
