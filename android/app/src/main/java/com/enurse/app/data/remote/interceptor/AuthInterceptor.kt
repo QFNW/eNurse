@@ -40,6 +40,8 @@ class AuthInterceptor @Inject constructor(
             if (refreshed != null) {
                 return chain.proceed(attachToken(chain, refreshed))
             }
+            // Refresh failed — return a fresh 401 response (original was closed)
+            return chain.proceed(chain.request())
         }
 
         return response

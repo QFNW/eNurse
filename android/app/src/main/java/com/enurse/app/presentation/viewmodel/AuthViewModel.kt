@@ -41,8 +41,8 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = AuthUiState(isLoading = true)
             authRepository.register(email, password, role)
-                .onSuccess {
-                    _state.value = AuthUiState(success = true, userRole = role)
+                .onSuccess { res ->
+                    _state.value = AuthUiState(success = true, userRole = res.user.role)
                 }
                 .onFailure { e ->
                     _state.value = AuthUiState(error = e.message ?: "注册失败")

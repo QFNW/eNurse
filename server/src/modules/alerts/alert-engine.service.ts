@@ -57,8 +57,8 @@ export class AlertEngineService {
       );
     }
 
-    // BM uses ±2 min tolerance to cover all 5-min cron slots
-    if (!this.isTimeMatch(currentTime, 2, setting.reminderTime)) return;
+    // BM uses ±3 min tolerance to cover all 5-min cron slots including min 58/59
+    if (!this.isTimeMatch(currentTime, 3, setting.reminderTime)) return;
 
     const checkDays = intervalDays - 1;
     const checkSince = new Date(now);

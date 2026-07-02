@@ -109,17 +109,7 @@ class BmRepositoryImpl @Inject constructor(
                         ))
                         true
                     }
-                    "medication_record" -> {
-                        @Suppress("UNCHECKED_CAST")
-                        val medData = data as? Map<String, String> ?: continue
-                        bmApi.createRecord(mapOf(
-                            "recordedAt" to (medData["takenAt"] ?: medData["recordedAt"] ?: ""),
-                            "notes" to "用药打卡"
-                        ))
-                        // Note: medication records are synced as BM records for simplicity
-                        // In production, a dedicated MedicationApi sync should be used
-                        true
-                    }
+                    "medication_record" -> false // skip — requires MedicationApi for proper sync
                     else -> false
                 }
                 if (synced) pendingSyncDao.delete(item)
