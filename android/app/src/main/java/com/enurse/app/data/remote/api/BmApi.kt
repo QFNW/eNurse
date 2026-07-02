@@ -2,6 +2,7 @@ package com.enurse.app.data.remote.api
 
 import com.enurse.app.data.remote.dto.response.BmCalendarResponse
 import com.enurse.app.data.remote.dto.response.BmRecordResponse
+import com.enurse.app.data.remote.dto.response.BmRecordsResponse
 import com.enurse.app.data.remote.dto.response.BmSettingsResponse
 import retrofit2.http.*
 
@@ -12,8 +13,10 @@ interface BmApi {
     @GET("bm/records")
     suspend fun getRecords(
         @Query("from") from: String? = null,
-        @Query("to") to: String? = null
-    ): List<BmRecordResponse>
+        @Query("to") to: String? = null,
+        @Query("page") page: Int? = null,
+        @Query("pageSize") pageSize: Int? = null
+    ): BmRecordsResponse
 
     @DELETE("bm/records/{id}")
     suspend fun deleteRecord(@Path("id") id: String)

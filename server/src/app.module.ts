@@ -11,6 +11,7 @@ import { AlertsModule } from './modules/alerts/alerts.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { WechatBotModule } from './modules/wechat-bot/wechat-bot.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { CacheModule } from './modules/cache/cache.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ValidationPipe } from '@nestjs/common';
@@ -32,6 +33,7 @@ import configuration from './config/configuration';
       }),
       inject: [ConfigService],
     }),
+    CacheModule,
     PrismaModule,
     AuthModule,
     UsersModule,

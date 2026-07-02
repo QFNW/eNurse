@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { randomUUID } from 'crypto';
@@ -17,6 +18,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private cacheService: CacheService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -70,6 +72,11 @@ export class AuthService {
         secret: this.configService.get<string>('jwt.refreshSecret'),
       });
 
+      // Check blacklist
+      if (payload.tokenId && await this.cacheService.isBlacklisted(payload.tokenId)) {
+        throw new UnauthorizedException('refreshToken 已被撤销');
+      }
+
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
       });
@@ -77,20 +84,41 @@ export class AuthService {
         throw new UnauthorizedException('用户不存在');
       }
 
-      // Generate new token pair (invalidates old refresh by rotation)
+      // Blacklist old tokenId before issuing new one
+      if (payload.tokenId) {
+        const remainingSeconds = payload.exp
+          ? payload.exp - Math.floor(Date.now() / 1000)
+          : 7 * 24 * 3600; // default 7d
+        await this.cacheService.blacklist(payload.tokenId, Math.max(1, remainingSeconds));
+      }
+
       const tokens = await this.generateTokens(user.id, user.email, user.role);
       return {
         ...tokens,
         user: { id: user.id, email: user.email, role: user.role },
       };
-    } catch {
+    } catch (err: any) {
+      if (err instanceof UnauthorizedException) throw err;
       throw new UnauthorizedException('refreshToken 无效或已过期');
     }
   }
 
   async logout(refreshToken: string) {
-    // JWT is stateless — client discards token.
-    // In production, add token to Redis blacklist here.
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+      });
+      if (payload.tokenId) {
+        const remainingSeconds = payload.exp
+          ? payload.exp - Math.floor(Date.now() / 1000)
+          : 7 * 24 * 3600;
+        if (remainingSeconds > 0) {
+          await this.cacheService.blacklist(payload.tokenId, remainingSeconds);
+        }
+      }
+    } catch {
+      // Token already expired — no need to blacklist
+    }
     return { message: '已登出' };
   }
 
