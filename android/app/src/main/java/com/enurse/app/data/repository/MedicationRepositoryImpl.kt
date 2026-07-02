@@ -52,11 +52,12 @@ class MedicationRepositoryImpl @Inject constructor(
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
         medicationDao.insert(MedicationRecordEntity(
             id = id, medicationId = medicationId, medicationName = medicationName,
-            userId = "", takenAt = sdf.parse(takenAt)?.time ?: System.currentTimeMillis(), synced = false
+            userId = userId, takenAt = sdf.parse(takenAt)?.time ?: System.currentTimeMillis(), synced = false
         ))
         pendingSyncDao.insert(PendingSyncEntity(
             type = "medication_record",
-            jsonData = Gson().toJson(mapOf("medicationId" to medicationId, "takenAt" to takenAt))
+            jsonData = Gson().toJson(mapOf("medicationId" to medicationId, "takenAt" to takenAt)),
+            localRecordId = id
         ))
     }
 

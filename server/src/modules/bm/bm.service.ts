@@ -81,8 +81,9 @@ export class BmService {
   // ========== Calendar ==========
 
   async getCalendar(userId: string, year: number, month: number) {
-    const startDate = new Date(Date.UTC(year, month - 1, 1));
-    const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+    // Pad by 12h on each side to handle all timezones (UTC-12 to UTC+12)
+    const startDate = new Date(Date.UTC(year, month - 1, 1, -12, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, month, 0, 23 + 12, 59, 59, 999));
 
     const records = await this.prisma.bmRecord.findMany({
       where: {
@@ -114,15 +115,11 @@ export class BmService {
   // ========== Settings ==========
 
   async getSettings(userId: string) {
-    let settings = await this.prisma.bmReminderSetting.findUnique({
+    return this.prisma.bmReminderSetting.upsert({
       where: { userId },
+      create: { userId },
+      update: {},
     });
-    if (!settings) {
-      settings = await this.prisma.bmReminderSetting.create({
-        data: { userId },
-      });
-    }
-    return settings;
   }
 
   async updateSettings(userId: string, dto: UpdateBmSettingsDto) {

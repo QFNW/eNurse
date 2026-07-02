@@ -294,9 +294,11 @@ export class AlertEngineService {
     ...targets: string[]
   ): boolean {
     const [cH, cM] = current.split(':').map(Number);
+    const currentTotal = cH * 60 + cM;
     return targets.some((t) => {
       const [tH, tM] = t.split(':').map(Number);
-      return cH === tH && Math.abs(cM - tM) <= toleranceMinutes;
+      const targetTotal = tH * 60 + tM;
+      return Math.abs(currentTotal - targetTotal) <= toleranceMinutes;
     });
   }
 }

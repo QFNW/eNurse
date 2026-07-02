@@ -167,17 +167,18 @@ export class GroupsService {
       },
     });
 
-    // Add active alert counts for each member
-    const result = await Promise.all(
-      members.map(async (m) => {
-        const alertCount = await this.prisma.alert.count({
-          where: { userId: m.userId, isResolved: false },
-        });
-        return { ...m, alertCount };
-      }),
+    // Batch alert counts in a single query
+    const memberIds = members.map((m) => m.userId);
+    const alertCounts = await this.prisma.alert.groupBy({
+      by: ['userId'],
+      where: { userId: { in: memberIds }, isResolved: false },
+      _count: { id: true },
+    });
+    const countMap = new Map(
+      alertCounts.map((a) => [a.userId, a._count.id]),
     );
 
-    return result;
+    return members.map((m) => ({ ...m, alertCount: countMap.get(m.userId) ?? 0 }));
   }
 
   async removeMember(ownerId: string, groupId: string, memberId: string) {
@@ -381,8 +382,8 @@ export class GroupsService {
     await this.ensureOwner(ownerId, groupId);
     await this.ensureMemberInGroup(groupId, memberId);
 
-    const startDate = new Date(Date.UTC(year, month - 1, 1));
-    const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+    const startDate = new Date(Date.UTC(year, month - 1, 1, -12, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, month, 0, 23 + 12, 59, 59, 999));
 
     const records = await this.prisma.bmRecord.findMany({
       where: {

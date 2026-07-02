@@ -76,6 +76,9 @@ fun AppNavGraph() {
                 onGoMedication = { navController.navigate("patient/medication") },
                 onGoSettings = { navController.navigate("patient/settings") },
                 onLogout = {
+                    kotlinx.coroutines.runBlocking {
+                        tokenDataStore.clear()
+                    }
                     navController.navigate("auth/login") {
                         popUpTo(0) { inclusive = true }
                     }
@@ -95,6 +98,9 @@ fun AppNavGraph() {
             NurseGroupListScreen(
                 onGoDetail = { id -> navController.navigate("nurse/groups/$id") },
                 onLogout = {
+                    kotlinx.coroutines.runBlocking {
+                        tokenDataStore.clear()
+                    }
                     navController.navigate("auth/login") {
                         popUpTo(0) { inclusive = true }
                     }

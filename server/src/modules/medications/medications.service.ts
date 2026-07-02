@@ -65,6 +65,11 @@ export class MedicationsService {
     if (!med || med.userId !== userId) {
       throw new NotFoundException('药品不存在');
     }
+    // Cascade: disable all schedules for this medication
+    await this.prisma.medicationSchedule.updateMany({
+      where: { medicationId: id },
+      data: { isEnabled: false },
+    });
     return this.prisma.medication.update({
       where: { id },
       data: { isActive: false },

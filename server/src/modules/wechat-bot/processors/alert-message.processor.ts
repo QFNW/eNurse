@@ -96,8 +96,12 @@ export class AlertMessageProcessor {
     const maxRetry = 6;
 
     if (retryCount >= maxRetry) {
-      this.logger.log(`Alert ${alertId} reached max retry (${maxRetry})`);
-      return { stopped: true, reason: 'max_retry_reached' };
+      this.logger.log(`Alert ${alertId} reached max retry (${maxRetry}) — auto-resolving`);
+      await this.prisma.alert.update({
+        where: { id: alertId },
+        data: { isResolved: true, resolvedAt: new Date() },
+      });
+      return { stopped: true, reason: 'max_retry_reached_resolved' };
     }
 
     const alert = await this.prisma.alert.findUnique({

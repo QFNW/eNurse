@@ -28,11 +28,12 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+    // Force PATIENT role for self-registration — NURSE/ADMIN must be created by admin
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
-        role: dto.role,
+        role: 'PATIENT',
       },
     });
 
