@@ -10,6 +10,7 @@ import { MedicationsModule } from './modules/medications/medications.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { WechatBotModule } from './modules/wechat-bot/wechat-bot.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ValidationPipe } from '@nestjs/common';
@@ -39,6 +40,7 @@ import configuration from './config/configuration';
     AlertsModule,
     GroupsModule,
     WechatBotModule,
+    AdminModule,
   ],
   providers: [
     {
