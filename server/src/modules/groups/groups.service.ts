@@ -382,6 +382,7 @@ export class GroupsService {
     memberId: string,
     year: number,
     month: number,
+    tzOffsetMinutes = 480,
   ) {
     await this.ensureOwner(ownerId, groupId);
     await this.ensureMemberInGroup(groupId, memberId);
@@ -400,7 +401,8 @@ export class GroupsService {
     const daysInMonth = new Date(year, month, 0).getDate();
     const recordMap = new Map<string, typeof records>();
     for (const r of records) {
-      const day = r.recordedAt.toISOString().slice(0, 10);
+      const localTime = new Date(r.recordedAt.getTime() + tzOffsetMinutes * 60000);
+      const day = localTime.toISOString().slice(0, 10);
       if (!recordMap.has(day)) recordMap.set(day, []);
       recordMap.get(day)!.push(r);
     }

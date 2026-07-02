@@ -80,7 +80,7 @@ export class BmService {
 
   // ========== Calendar ==========
 
-  async getCalendar(userId: string, year: number, month: number) {
+  async getCalendar(userId: string, year: number, month: number, tzOffsetMinutes = 480) {
     // Pad by 12h on each side to handle all timezones (UTC-12 to UTC+12)
     const startDate = new Date(Date.UTC(year, month - 1, 1, -12, 0, 0, 0));
     const endDate = new Date(Date.UTC(year, month, 0, 23 + 12, 59, 59, 999));
@@ -93,11 +93,12 @@ export class BmService {
       orderBy: { recordedAt: 'asc' },
     });
 
-    // Build day-by-day map
+    // Build day-by-day map using timezone-adjusted date
     const daysInMonth = new Date(year, month, 0).getDate();
     const recordMap = new Map<string, typeof records>();
     for (const r of records) {
-      const day = r.recordedAt.toISOString().slice(0, 10);
+      const localTime = new Date(r.recordedAt.getTime() + tzOffsetMinutes * 60000);
+      const day = localTime.toISOString().slice(0, 10);
       if (!recordMap.has(day)) recordMap.set(day, []);
       recordMap.get(day)!.push(r);
     }

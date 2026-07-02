@@ -164,12 +164,12 @@ export class AdminService {
       this.prisma.alert.count({ where: { isResolved: false } }),
       this.prisma.bmRecord.count({
         where: {
-          recordedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+          recordedAt: { gte: utcToday() },
         },
       }),
       this.prisma.medicationRecord.count({
         where: {
-          takenAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+          takenAt: { gte: utcToday() },
         },
       }),
     ]);
@@ -186,4 +186,10 @@ export class AdminService {
       alerts: { active: activeAlerts },
     };
   }
+}
+
+/** Returns UTC midnight (00:00:00.000Z) for today's date */
+function utcToday(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
