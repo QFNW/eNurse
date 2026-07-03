@@ -21,7 +21,7 @@ export default function GroupsPage() {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (v: string) => new Date(v).toLocaleDateString('zh-CN'),
+      render: (v: string) => v ? new Date(v).toLocaleDateString('zh-CN') : '-',
     },
   ];
 

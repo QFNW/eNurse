@@ -83,7 +83,17 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                                             snackbarHostState.showSnackbar("打卡成功")
                                             refreshMeds()
                                         } else {
-                                            snackbarHostState.showSnackbar("打卡失败: ${result.exceptionOrNull()?.message}")
+                                            val e = result.exceptionOrNull()
+                                            val isNetworkError = e is java.net.ConnectException ||
+                                                e is java.net.UnknownHostException ||
+                                                e is java.net.SocketTimeoutException ||
+                                                e is java.net.SocketException
+                                            if (isNetworkError) {
+                                                repo.recordOffline(uid, med.id, med.name, now)
+                                                snackbarHostState.showSnackbar("网络异常，已本地保存")
+                                            } else {
+                                                snackbarHostState.showSnackbar("打卡失败: ${e?.message}")
+                                            }
                                         }
                                     }
                                 }) { Text("打卡") }
