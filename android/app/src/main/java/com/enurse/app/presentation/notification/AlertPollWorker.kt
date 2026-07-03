@@ -107,7 +107,7 @@ class AlertPollWorker(
                 }
 
                 // Persist updated seen set (trim to last 200 to avoid unbounded growth)
-                val trimmed = seenIds.takeLast(200).toTypedArray()
+                val trimmed = seenIds.toList().takeLast(200).toTypedArray()
                 tokenDataStore.setPreference(LAST_SEEN_KEY, Gson().toJson(trimmed))
 
                 if (newCount > 0) {
@@ -118,7 +118,7 @@ class AlertPollWorker(
             // Clean up seen IDs that are no longer active
             val activeIds = alerts.map { it.id }.toSet()
             seenIds.retainAll(activeIds)
-            val trimmed = seenIds.takeLast(200).toTypedArray()
+            val trimmed = seenIds.toList().takeLast(200).toTypedArray()
             tokenDataStore.setPreference(LAST_SEEN_KEY, Gson().toJson(trimmed))
 
             return Result.success()

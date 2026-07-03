@@ -14,6 +14,7 @@ import dagger.hilt.android.EntryPointAccessors
 import androidx.compose.ui.platform.LocalContext
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
+import dagger.hilt.EntryPoint
 import dagger.hilt.components.SingletonComponent
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,7 +61,8 @@ fun SettingsScreen(
                 Button(onClick = {
                     bmViewModel.updateSettings(
                         intervalDays = intervalDays.toIntOrNull(),
-                        reminderTime = reminderTime
+                        reminderTime = reminderTime,
+                        isEnabled = null
                     )
                 }) { Text("保存") }
 

@@ -85,7 +85,7 @@ class BmRepositoryImpl @Inject constructor(
 
     override suspend fun deleteRecord(id: String) {
         bmApi.deleteRecord(id)
-        bmRecordDao.delete(BmRecordEntity(id = id, userId = "", recordedAt = 0))
+        bmRecordDao.delete(BmRecordEntity(id = id, userId = "", recordedAt = 0, notes = null))
     }
 
     override fun getLocalRecords(userId: String): Flow<List<BmRecordEntity>> =
@@ -110,7 +110,7 @@ class BmRepositoryImpl @Inject constructor(
                         ))
                         if (item.localRecordId.isNotEmpty()) {
                             bmRecordDao.delete(BmRecordEntity(
-                                id = item.localRecordId, userId = "", recordedAt = 0
+                                id = item.localRecordId, userId = "", recordedAt = 0, notes = null
                             ))
                         }
                         true

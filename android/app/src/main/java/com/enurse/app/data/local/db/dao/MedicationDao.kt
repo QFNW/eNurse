@@ -17,4 +17,7 @@ interface MedicationDao {
 
     @Query("UPDATE medication_records SET synced = 1 WHERE id = :id")
     suspend fun markSynced(id: String)
+
+    @Delete
+    suspend fun delete(record: MedicationRecordEntity)
 }
