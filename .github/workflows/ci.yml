@@ -1,0 +1,104 @@
+name: eNurse CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  server:
+    name: Server — TypeScript + Build + E2E
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: enurse
+          POSTGRES_PASSWORD: enurse_secret
+          POSTGRES_DB: enurse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://enurse:enurse_secret@localhost:5432/enurse?schema=public
+      ACCESS_TOKEN_SECRET: ci-access-secret
+      REFRESH_TOKEN_SECRET: ci-refresh-secret
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      ADMIN_PASSWORD: ci_admin_2026
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: cd server && npm ci
+
+      - name: TypeScript check
+        run: cd server && npx tsc --noEmit
+
+      - name: Prisma generate
+        run: cd server && npx prisma generate
+
+      - name: Build
+        run: cd server && npm run build
+
+      - name: Prisma migrate
+        run: cd server && npx prisma migrate deploy
+
+      - name: Seed database
+        run: cd server && npx prisma db seed
+
+      - name: Start server & wait
+        run: |
+          cd server
+          node dist/src/main.js &
+          sleep 8
+          curl -sf http://localhost:3000/api/v1/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@enurse.com","password":"admin_enurse_2026"}' \
+            > /dev/null && echo "Server ready"
+
+      - name: Run E2E tests
+        run: cd server && npx jest --config test/jest-e2e.json --forceExit test/e2e/
+
+  web-admin:
+    name: Web Admin — Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web-admin/package-lock.json
+
+      - name: Install dependencies
+        run: cd web-admin && npm ci
+
+      - name: Build
+        run: cd web-admin && npx tsc -b && npx vite build
