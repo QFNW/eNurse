@@ -85,6 +85,13 @@ dependencies {
     // WorkManager (periodic alert polling)
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
+    // Testing (JVM unit tests)
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.12.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+
     // Core
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("com.google.code.gson:gson:2.11.0")
