@@ -21,8 +21,6 @@ model User {
   passwordHash  String
   nickname      String?
   role          Role      @default(PATIENT)
-  wechatWxid    String?   @unique
-  wechatBindAt  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -54,7 +52,6 @@ model Group {
 
   creator     User      @relation("GroupCreator", fields: [createdBy], references: [id])
   members     GroupMember[]
-  groupAlerts GroupAlert[]
 
   @@index([inviteCode])
   @@map("groups")
@@ -167,11 +164,6 @@ enum AlertType {
   MEDICATION_REMINDER
 }
 
-enum AlertChannel {
-  WECHAT_PRIVATE
-  WECHAT_GROUP
-}
-
 model Alert {
   id          String      @id @default(cuid())
   userId      String
@@ -182,36 +174,7 @@ model Alert {
   createdAt   DateTime    @default(now())
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sentAlerts  SentAlert[]
 
   @@index([userId, isResolved, createdAt])
   @@map("alerts")
-}
-
-model SentAlert {
-  id         String       @id @default(cuid())
-  alertId    String
-  channel    AlertChannel
-  sentAt     DateTime     @default(now())
-  retryCount Int          @default(0)
-  maxRetry   Int          @default(0)
-  isAcked    Boolean      @default(false)
-
-  alert      Alert        @relation(fields: [alertId], references: [id], onDelete: Cascade)
-
-  @@index([alertId])
-  @@map("sent_alerts")
-}
-
-model GroupAlert {
-  id         String    @id @default(cuid())
-  groupId    String
-  alertId    String
-  sentAt     DateTime  @default(now())
-  isResolved Boolean   @default(false)
-
-  group      Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  @@index([groupId, isResolved])
-  @@map("group_alerts")
 }

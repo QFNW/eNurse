@@ -20,11 +20,4 @@ export class UsersController {
     return this.usersService.update(user.sub, body);
   }
 
-  @Put('me/wechat-bind')
-  async bindWechat(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: { wechatWxid: string },
-  ) {
-    return this.usersService.bindWechat(user.sub, body.wechatWxid);
-  }
 }

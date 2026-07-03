@@ -1,0 +1,393 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GroupsService = void 0;
+const common_1 = require("@nestjs/common");
+const prisma_service_1 = require("../../prisma/prisma.service");
+let GroupsService = class GroupsService {
+    prisma;
+    constructor(prisma) {
+        this.prisma = prisma;
+    }
+    async create(userId, dto) {
+        const inviteCode = await this.generateInviteCode();
+        return this.prisma.group.create({
+            data: {
+                name: dto.name,
+                inviteCode,
+                createdBy: userId,
+                members: {
+                    create: {
+                        userId,
+                        roleInGroup: 'OWNER',
+                    },
+                },
+            },
+            include: { members: { include: { user: { select: { id: true, email: true, nickname: true, role: true } } } } },
+        });
+    }
+    async findByUser(userId, role) {
+        if (role === 'NURSE') {
+            return this.prisma.group.findMany({
+                where: { createdBy: userId },
+                include: {
+                    _count: { select: { members: true } },
+                },
+                orderBy: { createdAt: 'desc' },
+            });
+        }
+        const memberships = await this.prisma.groupMember.findMany({
+            where: { userId },
+            include: {
+                group: {
+                    select: {
+                        id: true,
+                        name: true,
+                        createdBy: true,
+                        createdAt: true,
+                        updatedAt: true,
+                        _count: { select: { members: true } },
+                    },
+                },
+            },
+        });
+        return memberships.map((m) => m.group);
+    }
+    async findById(userId, groupId) {
+        const group = await this.prisma.group.findUnique({
+            where: { id: groupId },
+            include: {
+                _count: { select: { members: true } },
+                members: {
+                    include: {
+                        user: {
+                            select: { id: true, email: true, nickname: true, role: true },
+                        },
+                    },
+                },
+            },
+        });
+        if (!group)
+            throw new common_1.NotFoundException('小组不存在');
+        const memberEntry = group.members.find((m) => m.userId === userId);
+        if (!memberEntry)
+            throw new common_1.ForbiddenException('无权访问该小组');
+        if (memberEntry.roleInGroup !== 'OWNER') {
+            const { inviteCode, ...rest } = group;
+            return rest;
+        }
+        return group;
+    }
+    async update(userId, groupId, dto) {
+        await this.ensureOwner(userId, groupId);
+        return this.prisma.group.update({
+            where: { id: groupId },
+            data: { name: dto.name },
+        });
+    }
+    async remove(userId, groupId) {
+        await this.ensureOwner(userId, groupId);
+        return this.prisma.group.delete({ where: { id: groupId } });
+    }
+    async regenerateInvite(userId, groupId) {
+        await this.ensureOwner(userId, groupId);
+        const inviteCode = await this.generateInviteCode();
+        return this.prisma.group.update({
+            where: { id: groupId },
+            data: { inviteCode },
+        });
+    }
+    async joinByInvite(userId, dto) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            throw new common_1.NotFoundException('用户不存在');
+        if (user.role !== 'PATIENT') {
+            throw new common_1.ForbiddenException('只有患者可以加入小组');
+        }
+        const existingMembership = await this.prisma.groupMember.findFirst({
+            where: { userId },
+        });
+        if (existingMembership) {
+            throw new common_1.BadRequestException('已加入其他小组，每个患者最多属于一个小组');
+        }
+        const group = await this.prisma.group.findUnique({
+            where: { inviteCode: dto.inviteCode },
+        });
+        if (!group)
+            throw new common_1.BadRequestException('邀请码无效');
+        const alreadyMember = await this.prisma.groupMember.findUnique({
+            where: { groupId_userId: { groupId: group.id, userId } },
+        });
+        if (alreadyMember)
+            throw new common_1.BadRequestException('已是该小组成员');
+        return this.prisma.groupMember.create({
+            data: { groupId: group.id, userId, roleInGroup: 'MEMBER' },
+            include: { group: true },
+        });
+    }
+    async getMembers(userId, groupId) {
+        await this.ensureOwner(userId, groupId);
+        const members = await this.prisma.groupMember.findMany({
+            where: { groupId },
+            include: {
+                user: {
+                    select: { id: true, email: true, nickname: true, role: true },
+                },
+            },
+        });
+        const memberIds = members.map((m) => m.userId);
+        const alertCounts = await this.prisma.alert.groupBy({
+            by: ['userId'],
+            where: { userId: { in: memberIds }, isResolved: false },
+            _count: { id: true },
+        });
+        const countMap = new Map(alertCounts.map((a) => [a.userId, a._count.id]));
+        return members.map((m) => ({ ...m, alertCount: countMap.get(m.userId) ?? 0 }));
+    }
+    async removeMember(ownerId, groupId, memberId) {
+        await this.ensureOwner(ownerId, groupId);
+        const membership = await this.prisma.groupMember.findUnique({
+            where: { groupId_userId: { groupId, userId: memberId } },
+        });
+        if (!membership)
+            throw new common_1.NotFoundException('成员不存在');
+        if (membership.roleInGroup === 'OWNER') {
+            throw new common_1.BadRequestException('不能移除小组创建者');
+        }
+        return this.prisma.groupMember.delete({
+            where: { groupId_userId: { groupId, userId: memberId } },
+        });
+    }
+    async getMemberAlerts(ownerId, groupId, memberId) {
+        await this.ensureOwner(ownerId, groupId);
+        await this.ensureMemberInGroup(groupId, memberId);
+        return this.prisma.alert.findMany({
+            where: { userId: memberId },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+        });
+    }
+    async getMemberEvents(ownerId, groupId, memberId, from, to) {
+        await this.ensureOwner(ownerId, groupId);
+        await this.ensureMemberInGroup(groupId, memberId);
+        const where = { userId: memberId };
+        const dateFilter = {};
+        if (from || to) {
+            if (from)
+                dateFilter.gte = new Date(from);
+            if (to)
+                dateFilter.lte = new Date(to);
+        }
+        const [bmRecords, medRecords, alerts] = await Promise.all([
+            this.prisma.bmRecord.findMany({
+                where: { ...where, ...(Object.keys(dateFilter).length ? { recordedAt: dateFilter } : {}) },
+                orderBy: { recordedAt: 'desc' },
+                take: 50,
+            }),
+            this.prisma.medicationRecord.findMany({
+                where: { ...where, ...(Object.keys(dateFilter).length ? { takenAt: dateFilter } : {}) },
+                include: { medication: { select: { id: true, name: true } } },
+                orderBy: { takenAt: 'desc' },
+                take: 50,
+            }),
+            this.prisma.alert.findMany({
+                where: {
+                    userId: memberId,
+                    ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 20,
+            }),
+        ]);
+        return { bmRecords, medRecords, alerts };
+    }
+    async getMemberStrategies(ownerId, groupId, memberId) {
+        await this.ensureOwner(ownerId, groupId);
+        await this.ensureMemberInGroup(groupId, memberId);
+        const [bmSettings, medications] = await Promise.all([
+            this.prisma.bmReminderSetting.findUnique({
+                where: { userId: memberId },
+            }),
+            this.prisma.medication.findMany({
+                where: { userId: memberId, isActive: true },
+                include: { schedules: true },
+            }),
+        ]);
+        return { bmSettings, medications };
+    }
+    async updateMemberStrategies(ownerId, groupId, memberId, dto) {
+        await this.ensureOwner(ownerId, groupId);
+        await this.ensureMemberInGroup(groupId, memberId);
+        if (dto.intervalDays !== undefined || dto.reminderTime !== undefined || dto.isEnabled !== undefined) {
+            const bmSettings = await this.prisma.bmReminderSetting.findUnique({
+                where: { userId: memberId },
+            });
+            if (bmSettings?.isLocked) {
+                throw new common_1.ForbiddenException('大便策略已锁定，请先解锁');
+            }
+            await this.prisma.bmReminderSetting.upsert({
+                where: { userId: memberId },
+                create: {
+                    userId: memberId,
+                    intervalDays: dto.intervalDays ?? 1,
+                    reminderTime: dto.reminderTime ?? '08:00',
+                    isEnabled: dto.isEnabled ?? true,
+                },
+                update: {
+                    ...(dto.intervalDays !== undefined && { intervalDays: dto.intervalDays }),
+                    ...(dto.reminderTime !== undefined && { reminderTime: dto.reminderTime }),
+                    ...(dto.isEnabled !== undefined && { isEnabled: dto.isEnabled }),
+                },
+            });
+        }
+        if (dto.scheduleId) {
+            const schedule = await this.prisma.medicationSchedule.findUnique({
+                where: { id: dto.scheduleId },
+                include: { medication: true },
+            });
+            if (!schedule || schedule.medication.userId !== memberId) {
+                throw new common_1.NotFoundException('排班不存在');
+            }
+            if (schedule.isLocked) {
+                throw new common_1.ForbiddenException('用药策略已锁定，请先解锁');
+            }
+            await this.prisma.medicationSchedule.update({
+                where: { id: dto.scheduleId },
+                data: {
+                    ...(dto.scheduleType && { scheduleType: dto.scheduleType }),
+                    ...(dto.intervalHours !== undefined && { intervalHours: dto.intervalHours }),
+                    ...(dto.fixedTimes !== undefined && { fixedTimes: dto.fixedTimes }),
+                    ...(dto.startTime !== undefined && { startTime: new Date(dto.startTime) }),
+                    ...(dto.isEnabled !== undefined && { isEnabled: dto.isEnabled }),
+                },
+            });
+        }
+        return this.getMemberStrategies(ownerId, groupId, memberId);
+    }
+    async toggleLock(ownerId, groupId, memberId, target, scheduleId) {
+        await this.ensureOwner(ownerId, groupId);
+        await this.ensureMemberInGroup(groupId, memberId);
+        if (target === 'bm') {
+            const current = await this.prisma.bmReminderSetting.findUnique({
+                where: { userId: memberId },
+            });
+            if (!current) {
+                await this.prisma.bmReminderSetting.create({ data: { userId: memberId, isLocked: true } });
+                return { target: 'bm', isLocked: true };
+            }
+            const updated = await this.prisma.bmReminderSetting.update({
+                where: { userId: memberId },
+                data: { isLocked: !current.isLocked },
+            });
+            return { target: 'bm', isLocked: updated.isLocked };
+        }
+        if (target === 'medication_schedule' && scheduleId) {
+            const current = await this.prisma.medicationSchedule.findUnique({
+                where: { id: scheduleId },
+                include: { medication: true },
+            });
+            if (!current || current.medication.userId !== memberId) {
+                throw new common_1.NotFoundException('排班不存在');
+            }
+            const updated = await this.prisma.medicationSchedule.update({
+                where: { id: scheduleId },
+                data: { isLocked: !current.isLocked },
+            });
+            return { target: 'medication_schedule', scheduleId, isLocked: updated.isLocked };
+        }
+        throw new common_1.BadRequestException('无效的目标类型');
+    }
+    async getMemberCalendar(ownerId, groupId, memberId, year, month, tzOffsetMinutes = 480) {
+        await this.ensureOwner(ownerId, groupId);
+        await this.ensureMemberInGroup(groupId, memberId);
+        const startDate = new Date(Date.UTC(year, month - 1, 1, -12, 0, 0, 0));
+        const endDate = new Date(Date.UTC(year, month, 0, 23 + 12, 59, 59, 999));
+        const records = await this.prisma.bmRecord.findMany({
+            where: {
+                userId: memberId,
+                recordedAt: { gte: startDate, lte: endDate },
+            },
+            orderBy: { recordedAt: 'asc' },
+        });
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const recordMap = new Map();
+        for (const r of records) {
+            const localTime = new Date(r.recordedAt.getTime() + tzOffsetMinutes * 60000);
+            const day = localTime.toISOString().slice(0, 10);
+            if (!recordMap.has(day))
+                recordMap.set(day, []);
+            recordMap.get(day).push(r);
+        }
+        const days = [];
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayRecords = recordMap.get(date) || [];
+            days.push({ date, hasRecord: dayRecords.length > 0, records: dayRecords });
+        }
+        return { year, month, days };
+    }
+    async ensureOwner(userId, groupId) {
+        const membership = await this.prisma.groupMember.findUnique({
+            where: { groupId_userId: { groupId, userId } },
+        });
+        if (!membership || membership.roleInGroup !== 'OWNER') {
+            throw new common_1.ForbiddenException('仅小组创建者可执行此操作');
+        }
+    }
+    async ensureMemberInGroup(groupId, memberId) {
+        const membership = await this.prisma.groupMember.findUnique({
+            where: { groupId_userId: { groupId, userId: memberId } },
+        });
+        if (!membership)
+            throw new common_1.NotFoundException('该用户不在此小组中');
+    }
+    async generateInviteCode() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const maxRetries = 5;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            let code = '';
+            for (let i = 0; i < 8; i++) {
+                code += chars[Math.floor(Math.random() * chars.length)];
+            }
+            const existing = await this.prisma.group.findUnique({
+                where: { inviteCode: code },
+            });
+            if (!existing)
+                return code;
+        }
+        for (let attempt = 0; attempt < 5; attempt++) {
+            let code = '';
+            for (let i = 0; i < 8; i++) {
+                code += chars[Math.floor(Math.random() * chars.length)];
+            }
+            const existing = await this.prisma.group.findUnique({
+                where: { inviteCode: code },
+            });
+            if (!existing)
+                return code;
+        }
+        const crypto = await import('crypto');
+        const hex = crypto.randomBytes(6).toString('hex').toUpperCase().slice(0, 8);
+        const existing = await this.prisma.group.findUnique({
+            where: { inviteCode: hex },
+        });
+        if (!existing)
+            return hex;
+        const ts = Date.now().toString(36).toUpperCase();
+        return ts.slice(-8).padStart(8, 'X');
+    }
+};
+exports.GroupsService = GroupsService;
+exports.GroupsService = GroupsService = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+], GroupsService);
+//# sourceMappingURL=groups.service.js.map

@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
-import { BullModule } from '@nestjs/bull';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -9,7 +8,6 @@ import { BmModule } from './modules/bm/bm.module';
 import { MedicationsModule } from './modules/medications/medications.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { GroupsModule } from './modules/groups/groups.module';
-import { WechatBotModule } from './modules/wechat-bot/wechat-bot.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -23,16 +21,6 @@ import configuration from './config/configuration';
       isGlobal: true,
       load: [configuration],
     }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        redis: {
-          host: configService.get<string>('redis.host') || 'localhost',
-          port: configService.get<number>('redis.port') || 6379,
-        },
-      }),
-      inject: [ConfigService],
-    }),
     CacheModule,
     PrismaModule,
     AuthModule,
@@ -41,7 +29,6 @@ import configuration from './config/configuration';
     MedicationsModule,
     AlertsModule,
     GroupsModule,
-    WechatBotModule,
     AdminModule,
   ],
   providers: [

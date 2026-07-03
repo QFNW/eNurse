@@ -9,7 +9,4 @@ interface UserApi {
 
     @PUT("users/me")
     suspend fun updateProfile(@Body body: Map<String, String>): UserResponse
-
-    @PUT("users/me/wechat-bind")
-    suspend fun bindWechat(@Body body: Map<String, String>): UserResponse
 }

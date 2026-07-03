@@ -74,7 +74,6 @@ export class AdminService {
           email: true,
           nickname: true,
           role: true,
-          wechatWxid: true,
           createdAt: true,
           _count: { select: { bmRecords: true, medications: true } },
         },

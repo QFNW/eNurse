@@ -51,7 +51,6 @@ export default function UsersPage() {
         />
       ),
     },
-    { title: '微信绑定', dataIndex: 'wechatWxid', key: 'wechatWxid', render: (v: string | null) => v ? '已绑定' : '未绑定' },
     {
       title: '操作', key: 'action',
       render: (_: any, record: any) => (

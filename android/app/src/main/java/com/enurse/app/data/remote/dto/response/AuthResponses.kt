@@ -20,6 +20,5 @@ data class UserResponse(
     val email: String,
     val role: String,
     val nickname: String?,
-    val wechatWxid: String?,
     val createdAt: String
 )
