@@ -114,6 +114,13 @@ class BmRepositoryImpl @Inject constructor(
                     }
                     "medication_record" -> {
                         medicationApi.createRecord(data)
+                        // Clean up local placeholder
+                        if (item.localRecordId.isNotEmpty()) {
+                            medicationDao.delete(MedicationRecordEntity(
+                                id = item.localRecordId, medicationId = "",
+                                medicationName = "", userId = "", takenAt = 0
+                            ))
+                        }
                         true
                     }
                     else -> false

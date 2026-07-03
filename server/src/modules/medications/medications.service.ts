@@ -90,6 +90,9 @@ export class MedicationsService {
     if (!med || med.userId !== userId) {
       throw new NotFoundException('药品不存在');
     }
+    if (!med.isActive) {
+      throw new NotFoundException('药品已删除，无法添加排班');
+    }
 
     return this.prisma.medicationSchedule.create({
       data: {

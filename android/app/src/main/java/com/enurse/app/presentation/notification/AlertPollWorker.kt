@@ -8,6 +8,7 @@ import androidx.work.*
 import com.enurse.app.data.local.datastore.TokenDataStore
 import com.enurse.app.data.remote.api.AlertApi
 import com.google.gson.Gson
+import kotlinx.coroutines.runBlocking
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
@@ -66,7 +67,7 @@ class AlertPollWorker(
 
                 Thread {
                     try {
-                        alertApi.resolve(alertId)
+                        runBlocking { alertApi.resolve(alertId) }
                         Log.d("AlertPollWorker", "Alert $alertId resolved via broadcast")
                     } catch (e: Exception) {
                         Log.e("AlertPollWorker", "Failed to resolve alert $alertId — will retry next poll", e)

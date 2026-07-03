@@ -31,11 +31,9 @@ export class CacheService implements OnModuleDestroy {
   async isBlacklisted(key: string): Promise<boolean> {
     try {
       return (await this.redis.exists(`blacklist:${key}`)) === 1;
-    } catch {
-      // Fail closed in production, open in dev
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error('Redis unavailable — token validation failed');
-      }
+    } catch (err: any) {
+      // Fail open in production — log but don't block all token refresh
+      console.error(`Redis blacklist check failed for key ${key}: ${err.message}`);
       return false;
     }
   }

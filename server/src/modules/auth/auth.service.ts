@@ -114,7 +114,12 @@ export class AuthService {
           ? payload.exp - Math.floor(Date.now() / 1000)
           : 7 * 24 * 3600;
         if (remainingSeconds > 0) {
-          await this.cacheService.blacklist(payload.tokenId, remainingSeconds);
+          try {
+            await this.cacheService.blacklist(payload.tokenId, remainingSeconds);
+          } catch (blacklistErr: any) {
+            // Logged but not fatal — token will expire naturally
+            console.error(`Logout blacklist failed for token ${payload.tokenId}: ${blacklistErr.message}`);
+          }
         }
       }
     } catch {

@@ -134,23 +134,26 @@ export class GroupsService {
     });
     if (!group) throw new BadRequestException('邀请码无效');
 
-    // Atomic check-and-create to prevent concurrent multi-group joins
-    return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.groupMember.findFirst({ where: { userId } });
-      if (existing) {
-        throw new BadRequestException('已加入其他小组，每个患者最多属于一个小组');
-      }
+    // Atomic check-and-create with serializable isolation to prevent concurrent joins
+    return this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.groupMember.findFirst({ where: { userId } });
+        if (existing) {
+          throw new BadRequestException('已加入其他小组，每个患者最多属于一个小组');
+        }
 
-      const alreadyMember = await tx.groupMember.findUnique({
-        where: { groupId_userId: { groupId: group.id, userId } },
-      });
-      if (alreadyMember) throw new BadRequestException('已是该小组成员');
+        const alreadyMember = await tx.groupMember.findUnique({
+          where: { groupId_userId: { groupId: group.id, userId } },
+        });
+        if (alreadyMember) throw new BadRequestException('已是该小组成员');
 
-      return tx.groupMember.create({
-        data: { groupId: group.id, userId, roleInGroup: 'MEMBER' },
-        include: { group: true },
-      });
-    });
+        return tx.groupMember.create({
+          data: { groupId: group.id, userId, roleInGroup: 'MEMBER' },
+          include: { group: true },
+        });
+      },
+      { isolationLevel: 'Serializable' },
+    );
   }
 
   // ========== Members (Nurse) ==========

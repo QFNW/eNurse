@@ -51,7 +51,11 @@ class HomeViewModel @Inject constructor(
     fun recordBm() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isRecording = true)
-            val userId = tokenDataStore.userId.first() ?: return@launch
+            val userId = tokenDataStore.userId.first()
+            if (userId == null) {
+                _state.value = _state.value.copy(isRecording = false, error = "无法获取用户信息，请重新登录")
+                return@launch
+            }
             val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
                 .format(java.util.Date())
 

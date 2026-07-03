@@ -37,7 +37,7 @@ fun NurseGroupDetailScreen(
             if (state.selectedGroup != null) {
                 Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("邀请码: ${state.selectedGroup!!.inviteCode}", style = MaterialTheme.typography.titleMedium)
+                        Text("邀请码: ${state.selectedGroup?.inviteCode ?: ""}", style = MaterialTheme.typography.titleMedium)
                         Text("成员数: ${state.members.size}")
                     }
                 }

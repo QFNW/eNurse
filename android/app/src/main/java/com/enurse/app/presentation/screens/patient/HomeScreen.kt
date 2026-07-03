@@ -53,10 +53,15 @@ fun HomeScreen(
 
             if (state.recordSuccess) {
                 Text("打卡成功！", color = MaterialTheme.colorScheme.primary)
+                if (!state.error.isNullOrBlank()) {
+                    Text(state.error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
                 LaunchedEffect(state.recordSuccess) {
                     kotlinx.coroutines.delay(2000)
                     viewModel.clearRecordSuccess()
                 }
+            } else if (!state.error.isNullOrBlank()) {
+                Text(state.error!!, color = MaterialTheme.colorScheme.error)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
