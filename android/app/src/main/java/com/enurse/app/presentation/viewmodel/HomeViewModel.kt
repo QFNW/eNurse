@@ -69,7 +69,8 @@ class HomeViewModel @Inject constructor(
                         e is java.net.UnknownHostException ||
                         e is java.net.SocketTimeoutException ||
                         e is java.net.SocketException
-                    if (isNetworkError) {
+                    val isAuthError = e is retrofit2.HttpException && (e as retrofit2.HttpException).code() == 401
+                    if (isNetworkError || isAuthError) {
                         bmRepository.recordOffline(userId, now)
                         _state.value = _state.value.copy(isRecording = false, recordSuccess = true,
                             error = "网络异常，已本地保存，稍后自动同步")

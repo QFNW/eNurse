@@ -116,8 +116,16 @@ class BmRepositoryImpl @Inject constructor(
                         true
                     }
                     "medication_record" -> {
-                        medicationApi.createRecord(data)
-                        // Clean up local placeholder
+                        val serverRecord = medicationApi.createRecord(data)
+                        medicationDao.insert(MedicationRecordEntity(
+                            id = serverRecord.id,
+                            medicationId = serverRecord.medicationId,
+                            medicationName = serverRecord.medication?.name ?: "",
+                            userId = serverRecord.userId,
+                            takenAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+                                .parse(serverRecord.takenAt)?.time ?: System.currentTimeMillis(),
+                            synced = true
+                        ))
                         if (item.localRecordId.isNotEmpty()) {
                             medicationDao.delete(MedicationRecordEntity(
                                 id = item.localRecordId, medicationId = "",

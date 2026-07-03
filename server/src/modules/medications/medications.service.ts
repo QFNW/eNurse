@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { parseDate } from '../../common/utils/date.utils';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   CreateMedicationDto,
@@ -54,9 +55,10 @@ export class MedicationsService {
     if (!med || med.userId !== userId) {
       throw new NotFoundException('药品不存在');
     }
+    const { isActive: _, ...safeData } = dto as any;
     return this.prisma.medication.update({
       where: { id },
-      data: { ...dto },
+      data: safeData,
     });
   }
 
@@ -170,8 +172,8 @@ export class MedicationsService {
     const where: any = { userId };
     if (from || to) {
       where.takenAt = {};
-      if (from) where.takenAt.gte = new Date(from);
-      if (to) where.takenAt.lte = new Date(to);
+      if (from) where.takenAt.gte = parseDate(from, 'from');
+      if (to) where.takenAt.lte = parseDate(to, 'to');
     }
     return this.prisma.medicationRecord.findMany({
       where,

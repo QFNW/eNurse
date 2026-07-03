@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { parseDate } from '../../common/utils/date.utils';
 import { Role } from '../../../generated/prisma/client';
 import {
   CreateGroupDto,
@@ -225,8 +226,8 @@ export class GroupsService {
     const where = { userId: memberId };
     const dateFilter: any = {};
     if (from || to) {
-      if (from) dateFilter.gte = new Date(from);
-      if (to) dateFilter.lte = new Date(to);
+      if (from) dateFilter.gte = parseDate(from, 'from');
+      if (to) dateFilter.lte = parseDate(to, 'to');
     }
 
     const [bmRecords, medRecords, alerts] = await Promise.all([
