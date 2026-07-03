@@ -16,7 +16,7 @@ import javax.inject.Singleton
 
 /**
  * Attaches the Bearer JWT token to every request.
- * On 401, attempts a synchronous token refresh and retries once.
+ * On 401, attempts a synchronous token refresh and retries once (guarded by X-Retry).
  */
 @Singleton
 class AuthInterceptor @Inject constructor(
@@ -27,6 +27,12 @@ class AuthInterceptor @Inject constructor(
         private val JSON = "application/json".toMediaType()
     }
 
+    // Single shared HTTP client for token refresh (not created per-401)
+    private val refreshClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .build()
+
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = runBlocking { tokenDataStore.accessToken.first() }
         val request = attachToken(chain, token)
@@ -36,7 +42,7 @@ class AuthInterceptor @Inject constructor(
         if (response.code == 401 && token != null && chain.request().header("X-Retry") == null) {
             response.close()
 
-            val refreshed = runBlocking { tryRefreshToken() }
+            val refreshed = tryRefreshToken()
             if (refreshed != null) {
                 val retryRequest = chain.request().newBuilder()
                     .header("X-Retry", "1")
@@ -51,36 +57,29 @@ class AuthInterceptor @Inject constructor(
 
     /**
      * Synchronously call /auth/refresh and update DataStore.
-     * Returns the new access token, or null if refresh failed.
+     * Not a suspend function — uses runBlocking for DataStore reads only.
      */
-    private suspend fun tryRefreshToken(): String? {
-        val refreshToken = tokenDataStore.refreshToken.first() ?: return null
+    private fun tryRefreshToken(): String? {
+        val refreshToken = runBlocking { tokenDataStore.refreshToken.first() } ?: return null
 
         return try {
-            val client = OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
-                .build()
-
             val body = Gson().toJson(mapOf("refreshToken" to refreshToken))
             val refreshRequest = Request.Builder()
                 .url(getBaseUrl() + "auth/refresh")
                 .post(body.toRequestBody(JSON))
                 .build()
 
-            val response = client.newCall(refreshRequest).execute()
-            if (!response.isSuccessful) {
-                response.close()
-                return null
+            val refreshResponse = refreshClient.newCall(refreshRequest).execute()
+            val json = refreshResponse.use { resp ->
+                if (!resp.isSuccessful) return null
+                val bodyStr = resp.body?.string() ?: return null
+                Gson().fromJson(bodyStr, Map::class.java)
             }
-
-            val json = Gson().fromJson(response.body?.string(), Map::class.java)
-            response.close()
 
             val newAccess = json["accessToken"] as? String ?: return null
             val newRefresh = json["refreshToken"] as? String ?: return null
 
-            tokenDataStore.saveTokens(newAccess, newRefresh)
+            runBlocking { tokenDataStore.saveTokens(newAccess, newRefresh) }
             newAccess
         } catch (_: Exception) {
             null

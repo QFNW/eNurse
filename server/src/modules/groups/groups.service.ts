@@ -128,29 +128,28 @@ export class GroupsService {
       throw new ForbiddenException('只有患者可以加入小组');
     }
 
-    // Check already in a group (PATIENT: max 1 group)
-    const existingMembership = await this.prisma.groupMember.findFirst({
-      where: { userId },
-    });
-    if (existingMembership) {
-      throw new BadRequestException('已加入其他小组，每个患者最多属于一个小组');
-    }
-
     // Find group by invite code
     const group = await this.prisma.group.findUnique({
       where: { inviteCode: dto.inviteCode },
     });
     if (!group) throw new BadRequestException('邀请码无效');
 
-    // Check if already a member
-    const alreadyMember = await this.prisma.groupMember.findUnique({
-      where: { groupId_userId: { groupId: group.id, userId } },
-    });
-    if (alreadyMember) throw new BadRequestException('已是该小组成员');
+    // Atomic check-and-create to prevent concurrent multi-group joins
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.groupMember.findFirst({ where: { userId } });
+      if (existing) {
+        throw new BadRequestException('已加入其他小组，每个患者最多属于一个小组');
+      }
 
-    return this.prisma.groupMember.create({
-      data: { groupId: group.id, userId, roleInGroup: 'MEMBER' },
-      include: { group: true },
+      const alreadyMember = await tx.groupMember.findUnique({
+        where: { groupId_userId: { groupId: group.id, userId } },
+      });
+      if (alreadyMember) throw new BadRequestException('已是该小组成员');
+
+      return tx.groupMember.create({
+        data: { groupId: group.id, userId, roleInGroup: 'MEMBER' },
+        include: { group: true },
+      });
     });
   }
 
