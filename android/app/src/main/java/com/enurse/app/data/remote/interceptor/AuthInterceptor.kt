@@ -44,7 +44,10 @@ class AuthInterceptor @Inject constructor(
 
             val refreshed = tryRefreshToken()
             if (refreshed != null) {
-                return chain.proceed(attachToken(chain, refreshed))
+                val retryRequest = attachToken(chain, refreshed).newBuilder()
+                    .header("X-Retry", "1")
+                    .build()
+                return chain.proceed(retryRequest)
             }
             return chain.proceed(chain.request())
         }
