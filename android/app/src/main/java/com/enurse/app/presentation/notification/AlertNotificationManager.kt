@@ -9,7 +9,6 @@ import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.enurse.app.MainActivity
-import com.enurse.app.R
 
 class AlertNotificationManager(private val context: Context) {
 
@@ -68,7 +67,7 @@ class AlertNotificationManager(private val context: Context) {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(openPending, true)
             .setAutoCancel(true)
-            .setOngoing(true)
+            .setOngoing(false)
             .setVibrate(longArrayOf(0, 500, 300, 500, 300, 500))
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
 
@@ -80,12 +79,12 @@ class AlertNotificationManager(private val context: Context) {
             )
         }
 
-        manager.notify(ALERT_NOTIFICATION_ID + alertId.hashCode() % 1000, builder.build())
+        manager.notify(alertId.hashCode() and 0x7FFFFFFF, builder.build())
     }
 
     fun cancelAlarm(alertId: String) {
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager.cancel(ALERT_NOTIFICATION_ID + alertId.hashCode() % 1000)
+        manager.cancel(alertId.hashCode() and 0x7FFFFFFF)
     }
 
     fun cancelAll() {

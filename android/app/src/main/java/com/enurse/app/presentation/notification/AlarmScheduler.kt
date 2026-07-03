@@ -30,16 +30,13 @@ class AlarmScheduler(private val context: Context) {
         )
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), pending
-                )
-            }
-        } else {
+        try {
             alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), pending
+                AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 100, pending
             )
+        } catch (_: SecurityException) {
+            // Fallback: inexact alarm (may be delayed but still fires)
+            alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 100, pending)
         }
     }
 

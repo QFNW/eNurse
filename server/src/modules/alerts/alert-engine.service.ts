@@ -160,6 +160,38 @@ export class AlertEngineService {
     this.logger.log(`Medication alert created for user ${userId}`);
   }
 
+  /** Auto-resolve stale alerts: BM > 7 days, Medication > 2 days */
+  @Cron('0 3 * * *') // daily at 3am
+  async cleanupStaleAlerts() {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+
+    const [bmCount, medCount] = await Promise.all([
+      this.prisma.alert.updateMany({
+        where: {
+          type: AlertType.BM_REMINDER,
+          isResolved: false,
+          createdAt: { lt: weekAgo },
+        },
+        data: { isResolved: true, resolvedAt: new Date() },
+      }),
+      this.prisma.alert.updateMany({
+        where: {
+          type: AlertType.MEDICATION_REMINDER,
+          isResolved: false,
+          createdAt: { lt: twoDaysAgo },
+        },
+        data: { isResolved: true, resolvedAt: new Date() },
+      }),
+    ]);
+
+    if (bmCount.count > 0 || medCount.count > 0) {
+      this.logger.log(
+        `Stale alert cleanup: BM=${bmCount.count}, Med=${medCount.count}`,
+      );
+    }
+  }
+
   private parseFixedTimes(raw: any): string[] {
     if (!Array.isArray(raw)) return [];
     return raw.filter(

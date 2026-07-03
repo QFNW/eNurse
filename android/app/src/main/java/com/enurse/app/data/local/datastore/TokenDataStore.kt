@@ -40,6 +40,14 @@ class TokenDataStore @Inject constructor(private val context: Context) {
         }
     }
 
+    suspend fun getPreference(key: String): String? {
+        return context.dataStore.data.map { it[stringPreferencesKey(key)] }.first()
+    }
+
+    suspend fun setPreference(key: String, value: String) {
+        context.dataStore.edit { it[stringPreferencesKey(key)] = value }
+    }
+
     suspend fun clear() {
         context.dataStore.edit { it.clear() }
     }
