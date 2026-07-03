@@ -140,6 +140,9 @@ export class MedicationsService {
     if (!schedule || schedule.medication.userId !== userId) {
       throw new NotFoundException('排班不存在');
     }
+    if (schedule.isLocked) {
+      throw new ForbiddenException('策略已锁定，无法删除');
+    }
     return this.prisma.medicationSchedule.delete({
       where: { id: scheduleId },
     });

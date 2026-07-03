@@ -34,8 +34,8 @@ class HomeViewModel @Inject constructor(
         loadAlerts()
         // Periodic offline sync
         viewModelScope.launch {
-            while (true) {
-                kotlinx.coroutines.delay(60_000) // every 60 seconds
+            while (isActive) {
+                kotlinx.coroutines.delay(60_000)
                 try { bmRepository.syncPending() } catch (_: Exception) {}
             }
         }

@@ -1,8 +1,10 @@
 package com.enurse.app.data.repository
 
 import com.enurse.app.data.local.db.dao.BmRecordDao
+import com.enurse.app.data.local.db.dao.MedicationDao
 import com.enurse.app.data.local.db.dao.PendingSyncDao
 import com.enurse.app.data.local.db.entity.BmRecordEntity
+import com.enurse.app.data.local.db.entity.MedicationRecordEntity
 import com.enurse.app.data.local.db.entity.PendingSyncEntity
 import com.enurse.app.data.remote.api.BmApi
 import com.enurse.app.data.remote.api.MedicationApi
@@ -21,6 +23,7 @@ class BmRepositoryImpl @Inject constructor(
     private val bmApi: BmApi,
     private val medicationApi: MedicationApi,
     private val bmRecordDao: BmRecordDao,
+    private val medicationDao: MedicationDao,
     private val pendingSyncDao: PendingSyncDao
 ) : BmRepository {
 
