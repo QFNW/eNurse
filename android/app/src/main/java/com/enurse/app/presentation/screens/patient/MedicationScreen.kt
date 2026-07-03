@@ -43,9 +43,12 @@ fun MedicationScreen(onGoBack: () -> Unit) {
     var newDosage by remember { mutableStateOf("") }
 
     suspend fun refreshMeds() {
-        repo.getMedications()
-            .onSuccess { medications = it }
-            .onFailure { snackbarHostState.showSnackbar("加载失败: ${it.message}") }
+        val result = repo.getMedications()
+        if (result.isSuccess) {
+            medications = result.getOrThrow()
+        } else {
+            snackbarHostState.showSnackbar("加载失败: ${result.exceptionOrNull()?.message}")
+        }
     }
 
     LaunchedEffect(Unit) { refreshMeds() }
@@ -74,12 +77,13 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                                     scope.launch {
                                         val uid = userId.userId.first() ?: ""
                                         val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(java.util.Date())
-                                        repo.record(uid, med.id, now)
-                                            .onSuccess {
-                                                snackbarHostState.showSnackbar("打卡成功")
-                                                refreshMeds()
-                                            }
-                                            .onFailure { snackbarHostState.showSnackbar("打卡失败: ${it.message}") }
+                                        val result = repo.record(uid, med.id, now)
+                                        if (result.isSuccess) {
+                                            snackbarHostState.showSnackbar("打卡成功")
+                                            refreshMeds()
+                                        } else {
+                                            snackbarHostState.showSnackbar("打卡失败: ${result.exceptionOrNull()?.message}")
+                                        }
                                     }
                                 }) { Text("打卡") }
                                 TextButton(onClick = {
@@ -116,13 +120,14 @@ fun MedicationScreen(onGoBack: () -> Unit) {
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
-                        repo.createMedication(newName, newDosage.ifBlank { null })
-                            .onSuccess {
-                                snackbarHostState.showSnackbar("已添加")
-                                refreshMeds()
-                                showAdd = false; newName = ""; newDosage = ""
-                            }
-                            .onFailure { snackbarHostState.showSnackbar("添加失败: ${it.message}") }
+                        val result = repo.createMedication(newName, newDosage.ifBlank { null })
+                        if (result.isSuccess) {
+                            snackbarHostState.showSnackbar("已添加")
+                            refreshMeds()
+                            showAdd = false; newName = ""; newDosage = ""
+                        } else {
+                            snackbarHostState.showSnackbar("添加失败: ${result.exceptionOrNull()?.message}")
+                        }
                     }
                 }) { Text("添加") }
             },

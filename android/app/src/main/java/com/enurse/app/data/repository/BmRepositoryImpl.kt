@@ -96,11 +96,7 @@ class BmRepositoryImpl @Inject constructor(
                 val synced = when (item.type) {
                     "bm_record" -> {
                         val serverRecord = bmApi.createRecord(data)
-                        if (item.localRecordId.isNotEmpty()) {
-                            bmRecordDao.delete(BmRecordEntity(
-                                id = item.localRecordId, userId = "", recordedAt = 0
-                            ))
-                        }
+                        // Insert new record first; only delete old after successful insert
                         bmRecordDao.insert(BmRecordEntity(
                             id = serverRecord.id,
                             userId = serverRecord.userId,
@@ -109,6 +105,11 @@ class BmRepositoryImpl @Inject constructor(
                             notes = serverRecord.notes,
                             synced = true
                         ))
+                        if (item.localRecordId.isNotEmpty()) {
+                            bmRecordDao.delete(BmRecordEntity(
+                                id = item.localRecordId, userId = "", recordedAt = 0
+                            ))
+                        }
                         true
                     }
                     "medication_record" -> {

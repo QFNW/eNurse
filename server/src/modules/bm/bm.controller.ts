@@ -85,8 +85,8 @@ export class BmController {
   ) {
     return this.bmService.getCalendar(
       user.sub,
-      parseInt(year, 10),
-      parseInt(month, 10),
+      parseInt(year, 10) || new Date().getFullYear(),
+      parseInt(month, 10) || (new Date().getMonth() + 1),
     );
   }
 

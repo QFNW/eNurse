@@ -85,15 +85,15 @@ export class AuthService {
         throw new UnauthorizedException('用户不存在');
       }
 
-      // Blacklist old tokenId before issuing new one
+      const tokens = await this.generateTokens(user.id, user.email, user.role);
+
+      // Blacklist old tokenId AFTER new tokens are issued
       if (payload.tokenId) {
         const remainingSeconds = payload.exp
           ? payload.exp - Math.floor(Date.now() / 1000)
-          : 7 * 24 * 3600; // default 7d
+          : 7 * 24 * 3600;
         await this.cacheService.blacklist(payload.tokenId, Math.max(1, remainingSeconds));
       }
-
-      const tokens = await this.generateTokens(user.id, user.email, user.role);
       return {
         ...tokens,
         user: { id: user.id, email: user.email, role: user.role },

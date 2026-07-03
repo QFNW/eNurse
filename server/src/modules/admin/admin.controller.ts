@@ -35,8 +35,8 @@ export class AdminController {
   ) {
     return this.adminService.getUsers(
       search,
-      parseInt(page || '1', 10),
-      parseInt(pageSize || '20', 10),
+      parseInt(page || '1', 10) || 1,
+      parseInt(pageSize || '20', 10) || 20,
     );
   }
 
@@ -62,8 +62,8 @@ export class AdminController {
     @Query('pageSize') pageSize?: string,
   ) {
     return this.adminService.getGroups(
-      parseInt(page || '1', 10),
-      parseInt(pageSize || '20', 10),
+      parseInt(page || '1', 10) || 1,
+      parseInt(pageSize || '20', 10) || 20,
     );
   }
 

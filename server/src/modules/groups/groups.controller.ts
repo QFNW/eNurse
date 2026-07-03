@@ -184,8 +184,8 @@ export class GroupsController {
       user.sub,
       id,
       memberId,
-      parseInt(year, 10),
-      parseInt(month, 10),
+      parseInt(year, 10) || new Date().getFullYear(),
+      parseInt(month, 10) || (new Date().getMonth() + 1),
     );
   }
 }

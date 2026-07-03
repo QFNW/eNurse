@@ -49,9 +49,10 @@ fun BmCalendarScreen(
             if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(androidx.compose.ui.Alignment.CenterHorizontally))
             } else {
-                val days = state.calendar?.days?.map {
+                val days = state.calendar?.days?.mapNotNull {
                     val parts = it.date.split("-")
-                    CalendarDayData(date = it.date, dayNumber = parts[2].toInt().toString(), hasRecord = it.hasRecord)
+                    if (parts.size < 3) null else
+                        CalendarDayData(date = it.date, dayNumber = parts[2].toIntOrNull()?.toString() ?: "?", hasRecord = it.hasRecord)
                 } ?: emptyList()
 
                 CalendarGrid(

@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { parseDate } from '../../common/utils/date.utils';
 import {
   CreateBmRecordDto,
   QueryBmRecordsDto,
@@ -21,7 +22,7 @@ export class BmService {
     return this.prisma.bmRecord.create({
       data: {
         userId,
-        recordedAt: new Date(dto.recordedAt),
+        recordedAt: parseDate(dto.recordedAt, 'recordedAt'),
         notes: dto.notes,
       },
     });
@@ -34,8 +35,8 @@ export class BmService {
 
     if (query.from || query.to) {
       where.recordedAt = {};
-      if (query.from) where.recordedAt.gte = new Date(query.from);
-      if (query.to) where.recordedAt.lte = new Date(query.to);
+      if (query.from) where.recordedAt.gte = parseDate(query.from, 'from');
+      if (query.to) where.recordedAt.lte = parseDate(query.to, 'to');
     }
 
     const [records, total] = await Promise.all([
