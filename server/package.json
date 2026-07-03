@@ -6,9 +6,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && node patch-prisma.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "start": "nest build && node patch-prisma.js && nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
@@ -52,6 +52,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^7.0.0",
+    "axios": "^1.18.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -84,5 +85,6 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  }
+  },
+  "type": "commonjs"
 }
