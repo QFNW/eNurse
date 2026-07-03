@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MedicationsService = void 0;
 const common_1 = require("@nestjs/common");
+const date_utils_1 = require("../../common/utils/date.utils");
 const prisma_service_1 = require("../../prisma/prisma.service");
 let MedicationsService = class MedicationsService {
     prisma;
@@ -50,9 +51,10 @@ let MedicationsService = class MedicationsService {
         if (!med || med.userId !== userId) {
             throw new common_1.NotFoundException('药品不存在');
         }
+        const { isActive: _, ...safeData } = dto;
         return this.prisma.medication.update({
             where: { id },
-            data: { ...dto },
+            data: safeData,
         });
     }
     async remove(userId, id) {
@@ -60,13 +62,15 @@ let MedicationsService = class MedicationsService {
         if (!med || med.userId !== userId) {
             throw new common_1.NotFoundException('药品不存在');
         }
-        await this.prisma.medicationSchedule.updateMany({
-            where: { medicationId: id },
-            data: { isEnabled: false },
-        });
-        return this.prisma.medication.update({
-            where: { id },
-            data: { isActive: false },
+        return this.prisma.$transaction(async (tx) => {
+            await tx.medicationSchedule.updateMany({
+                where: { medicationId: id },
+                data: { isEnabled: false },
+            });
+            return tx.medication.update({
+                where: { id },
+                data: { isActive: false },
+            });
         });
     }
     async createSchedule(userId, medicationId, dto) {
@@ -75,6 +79,9 @@ let MedicationsService = class MedicationsService {
         });
         if (!med || med.userId !== userId) {
             throw new common_1.NotFoundException('药品不存在');
+        }
+        if (!med.isActive) {
+            throw new common_1.NotFoundException('药品已删除，无法添加排班');
         }
         return this.prisma.medicationSchedule.create({
             data: {
@@ -115,6 +122,9 @@ let MedicationsService = class MedicationsService {
         if (!schedule || schedule.medication.userId !== userId) {
             throw new common_1.NotFoundException('排班不存在');
         }
+        if (schedule.isLocked) {
+            throw new common_1.ForbiddenException('策略已锁定，无法删除');
+        }
         return this.prisma.medicationSchedule.delete({
             where: { id: scheduleId },
         });
@@ -139,9 +149,9 @@ let MedicationsService = class MedicationsService {
         if (from || to) {
             where.takenAt = {};
             if (from)
-                where.takenAt.gte = new Date(from);
+                where.takenAt.gte = (0, date_utils_1.parseDate)(from, 'from');
             if (to)
-                where.takenAt.lte = new Date(to);
+                where.takenAt.lte = (0, date_utils_1.parseDate)(to, 'to');
         }
         return this.prisma.medicationRecord.findMany({
             where,

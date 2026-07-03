@@ -9,7 +9,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AlertsModule = void 0;
 const common_1 = require("@nestjs/common");
 const schedule_1 = require("@nestjs/schedule");
-const bull_1 = require("@nestjs/bull");
 const alerts_service_1 = require("./alerts.service");
 const alert_engine_service_1 = require("./alert-engine.service");
 const alerts_controller_1 = require("./alerts.controller");
@@ -18,10 +17,7 @@ let AlertsModule = class AlertsModule {
 exports.AlertsModule = AlertsModule;
 exports.AlertsModule = AlertsModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            schedule_1.ScheduleModule.forRoot(),
-            bull_1.BullModule.registerQueue({ name: 'alerts' }),
-        ],
+        imports: [schedule_1.ScheduleModule.forRoot()],
         controllers: [alerts_controller_1.AlertsController],
         providers: [alerts_service_1.AlertsService, alert_engine_service_1.AlertEngineService],
         exports: [alerts_service_1.AlertsService, alert_engine_service_1.AlertEngineService],

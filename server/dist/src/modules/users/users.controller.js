@@ -14,8 +14,17 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
+const class_validator_1 = require("class-validator");
 const users_service_1 = require("./users.service");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
+class UpdateProfileDto {
+    nickname;
+}
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "nickname", void 0);
 let UsersController = class UsersController {
     usersService;
     constructor(usersService) {
@@ -26,9 +35,6 @@ let UsersController = class UsersController {
     }
     async updateProfile(user, body) {
         return this.usersService.update(user.sub, body);
-    }
-    async bindWechat(user, body) {
-        return this.usersService.bindWechat(user.sub, body.wechatWxid);
     }
 };
 exports.UsersController = UsersController;
@@ -44,17 +50,9 @@ __decorate([
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, UpdateProfileDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "updateProfile", null);
-__decorate([
-    (0, common_1.Put)('me/wechat-bind'),
-    __param(0, (0, current_user_decorator_1.CurrentUser)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
-], UsersController.prototype, "bindWechat", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('api/v1/users'),
     __metadata("design:paramtypes", [users_service_1.UsersService])

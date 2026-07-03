@@ -116,13 +116,13 @@ let AuthService = class AuthService {
             if (!user) {
                 throw new common_1.UnauthorizedException('用户不存在');
             }
+            const tokens = await this.generateTokens(user.id, user.email, user.role);
             if (payload.tokenId) {
                 const remainingSeconds = payload.exp
                     ? payload.exp - Math.floor(Date.now() / 1000)
                     : 7 * 24 * 3600;
                 await this.cacheService.blacklist(payload.tokenId, Math.max(1, remainingSeconds));
             }
-            const tokens = await this.generateTokens(user.id, user.email, user.role);
             return {
                 ...tokens,
                 user: { id: user.id, email: user.email, role: user.role },
@@ -144,7 +144,12 @@ let AuthService = class AuthService {
                     ? payload.exp - Math.floor(Date.now() / 1000)
                     : 7 * 24 * 3600;
                 if (remainingSeconds > 0) {
-                    await this.cacheService.blacklist(payload.tokenId, remainingSeconds);
+                    try {
+                        await this.cacheService.blacklist(payload.tokenId, remainingSeconds);
+                    }
+                    catch (blacklistErr) {
+                        console.error(`Logout blacklist failed for token ${payload.tokenId}: ${blacklistErr.message}`);
+                    }
                 }
             }
         }

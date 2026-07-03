@@ -40,7 +40,7 @@ let BmController = class BmController {
         return this.bmService.deleteRecord(user.sub, id);
     }
     getCalendar(user, year, month) {
-        return this.bmService.getCalendar(user.sub, parseInt(year, 10), parseInt(month, 10));
+        return this.bmService.getCalendar(user.sub, parseInt(year, 10) || new Date().getFullYear(), parseInt(month, 10) || (new Date().getMonth() + 1));
     }
     getSettings(user) {
         return this.bmService.getSettings(user.sub);

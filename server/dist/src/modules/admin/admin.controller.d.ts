@@ -14,7 +14,6 @@ export declare class AdminController {
             email: string;
             nickname: string | null;
             role: Role;
-            wechatWxid: string | null;
             createdAt: Date;
             _count: {
                 bmRecords: number;

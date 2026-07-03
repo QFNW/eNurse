@@ -49,34 +49,45 @@ class UpdateMemberStrategyDto {
 exports.UpdateMemberStrategyDto = UpdateMemberStrategyDto;
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
     __metadata("design:type", Number)
 ], UpdateMemberStrategyDto.prototype, "intervalDays", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^\d{2}:\d{2}$/),
     __metadata("design:type", String)
 ], UpdateMemberStrategyDto.prototype, "reminderTime", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], UpdateMemberStrategyDto.prototype, "isEnabled", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateMemberStrategyDto.prototype, "scheduleId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateMemberStrategyDto.prototype, "scheduleType", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
     __metadata("design:type", Number)
 ], UpdateMemberStrategyDto.prototype, "intervalHours", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
     __metadata("design:type", Array)
 ], UpdateMemberStrategyDto.prototype, "fixedTimes", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateMemberStrategyDto.prototype, "startTime", void 0);
 class LockStrategyDto {

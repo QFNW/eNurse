@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BmService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const date_utils_1 = require("../../common/utils/date.utils");
 let BmService = class BmService {
     prisma;
     constructor(prisma) {
@@ -21,7 +22,7 @@ let BmService = class BmService {
         return this.prisma.bmRecord.create({
             data: {
                 userId,
-                recordedAt: new Date(dto.recordedAt),
+                recordedAt: (0, date_utils_1.parseDate)(dto.recordedAt, 'recordedAt'),
                 notes: dto.notes,
             },
         });
@@ -33,9 +34,9 @@ let BmService = class BmService {
         if (query.from || query.to) {
             where.recordedAt = {};
             if (query.from)
-                where.recordedAt.gte = new Date(query.from);
+                where.recordedAt.gte = (0, date_utils_1.parseDate)(query.from, 'from');
             if (query.to)
-                where.recordedAt.lte = new Date(query.to);
+                where.recordedAt.lte = (0, date_utils_1.parseDate)(query.to, 'to');
         }
         const [records, total] = await Promise.all([
             this.prisma.bmRecord.findMany({

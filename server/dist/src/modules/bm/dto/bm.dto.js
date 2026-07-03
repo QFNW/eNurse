@@ -17,7 +17,7 @@ class CreateBmRecordDto {
 }
 exports.CreateBmRecordDto = CreateBmRecordDto;
 __decorate([
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/),
     __metadata("design:type", String)
 ], CreateBmRecordDto.prototype, "recordedAt", void 0);
 __decorate([
@@ -81,6 +81,7 @@ __decorate([
 ], UpdateBmSettingsDto.prototype, "reminderTime", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], UpdateBmSettingsDto.prototype, "isEnabled", void 0);
 //# sourceMappingURL=bm.dto.js.map

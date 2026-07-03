@@ -27,7 +27,7 @@ let AdminController = class AdminController {
         return this.adminService.login(body.password);
     }
     getUsers(search, page, pageSize) {
-        return this.adminService.getUsers(search, parseInt(page || '1', 10), parseInt(pageSize || '20', 10));
+        return this.adminService.getUsers(search, parseInt(page || '1', 10) || 1, parseInt(pageSize || '20', 10) || 20);
     }
     updateUserRole(userId, body) {
         return this.adminService.updateUserRole(userId, body.role);
@@ -36,7 +36,7 @@ let AdminController = class AdminController {
         return this.adminService.disableUser(userId);
     }
     getGroups(page, pageSize) {
-        return this.adminService.getGroups(parseInt(page || '1', 10), parseInt(pageSize || '20', 10));
+        return this.adminService.getGroups(parseInt(page || '1', 10) || 1, parseInt(pageSize || '20', 10) || 20);
     }
     getStats() {
         return this.adminService.getStats();

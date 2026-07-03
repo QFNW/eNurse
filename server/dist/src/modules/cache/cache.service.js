@@ -41,10 +41,8 @@ let CacheService = class CacheService {
         try {
             return (await this.redis.exists(`blacklist:${key}`)) === 1;
         }
-        catch {
-            if (process.env.NODE_ENV === 'production') {
-                throw new Error('Redis unavailable — token validation failed');
-            }
+        catch (err) {
+            console.error(`Redis blacklist check failed for key ${key}: ${err.message}`);
             return false;
         }
     }

@@ -67,7 +67,7 @@ let GroupsController = class GroupsController {
         return this.groupsService.toggleLock(user.sub, id, memberId, dto.target, dto.scheduleId);
     }
     getMemberCalendar(user, id, memberId, year, month) {
-        return this.groupsService.getMemberCalendar(user.sub, id, memberId, parseInt(year, 10), parseInt(month, 10));
+        return this.groupsService.getMemberCalendar(user.sub, id, memberId, parseInt(year, 10) || new Date().getFullYear(), parseInt(month, 10) || (new Date().getMonth() + 1));
     }
 };
 exports.GroupsController = GroupsController;

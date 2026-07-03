@@ -13,7 +13,6 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const core_1 = require("@nestjs/core");
-const bull_1 = require("@nestjs/bull");
 const prisma_module_1 = require("./prisma/prisma.module");
 const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
@@ -21,7 +20,6 @@ const bm_module_1 = require("./modules/bm/bm.module");
 const medications_module_1 = require("./modules/medications/medications.module");
 const alerts_module_1 = require("./modules/alerts/alerts.module");
 const groups_module_1 = require("./modules/groups/groups.module");
-const wechat_bot_module_1 = require("./modules/wechat-bot/wechat-bot.module");
 const admin_module_1 = require("./modules/admin/admin.module");
 const cache_module_1 = require("./modules/cache/cache.module");
 const jwt_auth_guard_1 = require("./common/guards/jwt-auth.guard");
@@ -38,16 +36,6 @@ exports.AppModule = AppModule = __decorate([
                 isGlobal: true,
                 load: [configuration_1.default],
             }),
-            bull_1.BullModule.forRootAsync({
-                imports: [config_1.ConfigModule],
-                useFactory: (configService) => ({
-                    redis: {
-                        host: configService.get('redis.host') || 'localhost',
-                        port: configService.get('redis.port') || 6379,
-                    },
-                }),
-                inject: [config_1.ConfigService],
-            }),
             cache_module_1.CacheModule,
             prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
@@ -56,7 +44,6 @@ exports.AppModule = AppModule = __decorate([
             medications_module_1.MedicationsModule,
             alerts_module_1.AlertsModule,
             groups_module_1.GroupsModule,
-            wechat_bot_module_1.WechatBotModule,
             admin_module_1.AdminModule,
         ],
         providers: [
