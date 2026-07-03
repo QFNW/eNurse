@@ -32,15 +32,17 @@ class AuthInterceptor @Inject constructor(
         val request = attachToken(chain, token)
         val response = chain.proceed(request)
 
-        if (response.code == 401 && token != null) {
+        // Only retry once — guard against infinite loop on permanent 401
+        if (response.code == 401 && token != null && chain.request().header("X-Retry") == null) {
             response.close()
 
-            // Attempt synchronous refresh
             val refreshed = runBlocking { tryRefreshToken() }
             if (refreshed != null) {
-                return chain.proceed(attachToken(chain, refreshed))
+                val retryRequest = chain.request().newBuilder()
+                    .header("X-Retry", "1")
+                    .build()
+                return chain.proceed(retryRequest)
             }
-            // Refresh failed — return a fresh 401 response (original was closed)
             return chain.proceed(chain.request())
         }
 

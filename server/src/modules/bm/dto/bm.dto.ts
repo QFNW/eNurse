@@ -1,8 +1,8 @@
-import { IsInt, IsString, IsOptional, Min, Max } from 'class-validator';
+import { IsInt, IsString, IsOptional, IsBoolean, Min, Max, Matches } from 'class-validator';
 
 export class CreateBmRecordDto {
-  @IsString()
-  recordedAt: string; // ISO 8601
+  @Matches(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/)
+  recordedAt: string; // ISO 8601 date or datetime
 
   @IsOptional()
   @IsString()
@@ -45,5 +45,6 @@ export class UpdateBmSettingsDto {
   reminderTime?: string;
 
   @IsOptional()
+  @IsBoolean()
   isEnabled?: boolean;
 }

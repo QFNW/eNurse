@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsInt, IsArray, Min, Matches } from 'class-validator';
 
 export class CreateGroupDto {
   @IsString()
@@ -17,30 +17,39 @@ export class JoinGroupDto {
 }
 
 export class UpdateMemberStrategyDto {
-  // BM settings
   @IsOptional()
+  @IsInt()
+  @Min(1)
   intervalDays?: number;
 
   @IsOptional()
+  @IsString()
+  @Matches(/^\d{2}:\d{2}$/)
   reminderTime?: string;
 
   @IsOptional()
+  @IsBoolean()
   isEnabled?: boolean;
 
-  // Medication schedule
   @IsOptional()
+  @IsString()
   scheduleId?: string;
 
   @IsOptional()
+  @IsString()
   scheduleType?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
   intervalHours?: number;
 
   @IsOptional()
+  @IsArray()
   fixedTimes?: string[];
 
   @IsOptional()
+  @IsString()
   startTime?: string;
 }
 
@@ -50,5 +59,5 @@ export class LockStrategyDto {
 
   @IsOptional()
   @IsString()
-  scheduleId?: string; // required when target = 'medication_schedule'
+  scheduleId?: string;
 }

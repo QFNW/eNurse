@@ -45,31 +45,33 @@ class AlertPollWorker(
                     request
                 )
         }
+    }
 
-        class ResolverReceiver : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                val alertId = intent.getStringExtra("alertId") ?: return
-                val action = intent.getStringExtra("action") ?: return
+    /**
+     * BroadcastReceiver for notification resolve action.
+     * Registered in AndroidManifest.xml as .presentation.notification.AlertPollWorker$ResolverReceiver.
+     * NOTE: must be a regular nested class (not inside companion) for the JVM class name to match.
+     */
+    class ResolverReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val alertId = intent.getStringExtra("alertId") ?: return
+            val action = intent.getStringExtra("action") ?: return
 
-                if (action == "resolve") {
-                    val entryPoint = EntryPointAccessors.fromApplication(
-                        context.applicationContext,
-                        AlertApiEntryPoint::class.java
-                    )
-                    val alertApi = entryPoint.alertApi()
-                    val tokenDataStore = entryPoint.tokenDataStore()
+            if (action == "resolve") {
+                val entryPoint = EntryPointAccessors.fromApplication(
+                    context.applicationContext,
+                    AlertApiEntryPoint::class.java
+                )
+                val alertApi = entryPoint.alertApi()
 
-                    Thread {
-                        try {
-                            alertApi.resolve(alertId)
-                            Log.d(TAG, "Alert $alertId resolved via broadcast")
-                            // Also remove from local tracking so it doesn't re-fire
-                            // (cleaned up on next poll cycle)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to resolve alert $alertId — will retry next poll", e)
-                        }
-                    }.start()
-                }
+                Thread {
+                    try {
+                        alertApi.resolve(alertId)
+                        Log.d("AlertPollWorker", "Alert $alertId resolved via broadcast")
+                    } catch (e: Exception) {
+                        Log.e("AlertPollWorker", "Failed to resolve alert $alertId — will retry next poll", e)
+                    }
+                }.start()
             }
         }
     }

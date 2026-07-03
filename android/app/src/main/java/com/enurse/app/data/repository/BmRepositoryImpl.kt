@@ -5,6 +5,7 @@ import com.enurse.app.data.local.db.dao.PendingSyncDao
 import com.enurse.app.data.local.db.entity.BmRecordEntity
 import com.enurse.app.data.local.db.entity.PendingSyncEntity
 import com.enurse.app.data.remote.api.BmApi
+import com.enurse.app.data.remote.api.MedicationApi
 import com.enurse.app.data.remote.dto.response.BmCalendarResponse
 import com.enurse.app.data.remote.dto.response.BmRecordResponse
 import com.enurse.app.data.remote.dto.response.BmSettingsResponse
@@ -18,6 +19,7 @@ import javax.inject.Inject
 
 class BmRepositoryImpl @Inject constructor(
     private val bmApi: BmApi,
+    private val medicationApi: MedicationApi,
     private val bmRecordDao: BmRecordDao,
     private val pendingSyncDao: PendingSyncDao
 ) : BmRepository {
@@ -109,7 +111,10 @@ class BmRepositoryImpl @Inject constructor(
                         ))
                         true
                     }
-                    "medication_record" -> false // skip — requires MedicationApi for proper sync
+                    "medication_record" -> {
+                        medicationApi.createRecord(data)
+                        true
+                    }
                     else -> false
                 }
                 if (synced) pendingSyncDao.delete(item)
