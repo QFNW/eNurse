@@ -99,6 +99,15 @@ export class GroupsController {
     return this.groupsService.getMembers(user.sub, id);
   }
 
+  @Post(':id/leave')
+  @Roles(Role.PATIENT)
+  leave(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+  ) {
+    return this.groupsService.leave(user.sub, id);
+  }
+
   @Delete(':id/members/:userId')
   @Roles(Role.NURSE)
   removeMember(

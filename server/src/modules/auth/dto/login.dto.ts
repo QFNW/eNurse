@@ -1,8 +1,8 @@
-import { IsEmail, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class LoginDto {
-  @IsEmail()
-  email: string;
+  @IsString()
+  login: string; // 用户名或邮箱（含@按邮箱查找，否则按用户名）
 
   @IsString()
   password: string;

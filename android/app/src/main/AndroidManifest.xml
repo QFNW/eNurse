@@ -13,6 +13,7 @@
     <application
         android:name=".eNurseApp"
         android:allowBackup="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@android:mipmap/sym_def_app_icon"
         android:label="易护"
         android:supportsRtl="true"

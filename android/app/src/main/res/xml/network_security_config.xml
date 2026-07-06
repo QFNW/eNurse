@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 仅开发环境允许明文 HTTP，发布前移除 domain-config -->
+<network-security-config>
+    <!-- 模拟器访问宿主机：仅此 IP 允许明文 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+    <!-- 其他所有域名走 HTTPS -->
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

@@ -106,13 +106,11 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                                     scope.launch {
                                         try {
                                             repo.deleteMedication(med.id)
+                                            refreshMeds()
                                             snackbarHostState.showSnackbar("已删除")
                                         } catch (e: Exception) {
                                             snackbarHostState.showSnackbar("删除失败: ${e.message}")
-                                            return@launch
                                         }
-                                        // Refresh after successful delete (best-effort)
-                                        try { refreshMeds() } catch (_: Exception) {}
                                     }
                                 }) { Text("删除", color = MaterialTheme.colorScheme.error) }
                             }
@@ -207,9 +205,9 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                     scope.launch {
                         val result = repo.createMedication(newName, newDosage.ifBlank { null })
                         if (result.isSuccess) {
-                            snackbarHostState.showSnackbar("已添加")
-                            refreshMeds()
                             showAdd = false; newName = ""; newDosage = ""
+                            try { refreshMeds() } catch (_: Exception) {}
+                            snackbarHostState.showSnackbar("已添加")
                         } else {
                             snackbarHostState.showSnackbar("添加失败: ${result.exceptionOrNull()?.message}")
                         }

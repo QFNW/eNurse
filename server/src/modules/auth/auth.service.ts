@@ -23,47 +23,54 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    // Force PATIENT role for self-registration — NURSE/ADMIN must be created by admin
     let user;
     try {
       user = await this.prisma.user.create({
         data: {
+          username: dto.username,
           email: dto.email,
+          displayName: dto.displayName,
           passwordHash,
           role: dto.role,
         },
       });
     } catch (err: any) {
       if (err.code === 'P2002') {
-        throw new ConflictException('该邮箱已被注册');
+        const msg = (err.meta?.target as string[] || []).includes('username')
+          ? '该用户名已被注册'
+          : '该邮箱已被注册';
+        throw new ConflictException(msg);
       }
       throw err;
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, role: user.role },
+      user: { id: user.id, username: user.username, email: user.email, role: user.role, displayName: user.displayName },
     };
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    // Support login by username or email (detect @ to distinguish)
+    const isEmail = dto.login?.includes('@');
+    const user = isEmail
+      ? await this.prisma.user.findUnique({ where: { email: dto.login } })
+      : await this.prisma.user.findUnique({ where: { username: dto.login } });
+
     if (!user) {
-      throw new UnauthorizedException('邮箱或密码错误');
+      throw new UnauthorizedException('用户名或密码错误');
     }
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
-      throw new UnauthorizedException('邮箱或密码错误');
+      throw new UnauthorizedException('用户名或密码错误');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, role: user.role },
+      user: { id: user.id, username: user.username, email: user.email, role: user.role, displayName: user.displayName },
     };
   }
 
@@ -85,7 +92,7 @@ export class AuthService {
         throw new UnauthorizedException('用户不存在');
       }
 
-      const tokens = await this.generateTokens(user.id, user.email, user.role);
+      const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);
 
       // Blacklist old tokenId AFTER new tokens are issued
       if (payload.tokenId) {
@@ -96,7 +103,7 @@ export class AuthService {
       }
       return {
         ...tokens,
-        user: { id: user.id, email: user.email, role: user.role },
+        user: { id: user.id, username: user.username, email: user.email, role: user.role, displayName: user.displayName },
       };
     } catch (err: any) {
       if (err instanceof UnauthorizedException) throw err;
@@ -128,7 +135,7 @@ export class AuthService {
     return { message: '已登出' };
   }
 
-  private async generateTokens(userId: string, email: string, role: string) {
+  private async generateTokens(userId: string, username: string, email: string, role: string) {
     const tokenId = randomUUID();
 
     const accessSecret = this.configService.get<string>('jwt.accessSecret') as string;
@@ -138,7 +145,7 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
-        { sub: userId, email, role },
+        { sub: userId, username, email, role },
         { secret: accessSecret, expiresIn: accessExpires as any },
       ),
       this.jwtService.signAsync(

@@ -163,7 +163,7 @@ export class MedicationsService {
       data: {
         medicationId: dto.medicationId,
         userId,
-        takenAt: new Date(dto.takenAt),
+        takenAt: new Date(),
       },
     });
   }

@@ -17,8 +17,10 @@ enum Role {
 
 model User {
   id            String    @id @default(cuid())
+  username      String    @unique
   email         String    @unique
   passwordHash  String
+  displayName   String
   nickname      String?
   role          Role      @default(PATIENT)
   createdAt     DateTime  @default(now())

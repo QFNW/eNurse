@@ -18,7 +18,7 @@ interface MedicationApi {
     suspend fun delete(@Path("id") id: String)
 
     @POST("medications/{id}/schedules")
-    suspend fun createSchedule(@Path("id") medId: String, @Body body: Map<String, Any>): Any
+    suspend fun createSchedule(@Path("id") medId: String, @Body body: Map<String, @JvmSuppressWildcards Any>): Any
 
     @POST("medications/records")
     suspend fun createRecord(@Body body: Map<String, String>): MedicationRecordResponse

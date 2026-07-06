@@ -60,6 +60,7 @@ export class GroupsService {
             createdBy: true,
             createdAt: true,
             updatedAt: true,
+            creator: { select: { id: true, email: true, nickname: true, role: true } },
             _count: { select: { members: true } },
           },
         },
@@ -155,6 +156,21 @@ export class GroupsService {
       },
       { isolationLevel: 'Serializable' },
     );
+  }
+
+  // ========== Leave (Patient) ==========
+
+  async leave(userId: string, groupId: string) {
+    const membership = await this.prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+    });
+    if (!membership) throw new NotFoundException('未加入该小组');
+    if (membership.roleInGroup === 'OWNER') {
+      throw new BadRequestException('组长不能退出，请先转让组长或删除小组');
+    }
+    return this.prisma.groupMember.delete({
+      where: { groupId_userId: { groupId, userId } },
+    });
   }
 
   // ========== Members (Nurse) ==========
