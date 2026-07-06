@@ -43,6 +43,10 @@ fun MedicationScreen(onGoBack: () -> Unit) {
     var showAdd by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
     var newDosage by remember { mutableStateOf("") }
+    var showSchedule by remember { mutableStateOf<String?>(null) } // medication ID being edited
+    var scheduleType by remember { mutableStateOf("FIXED_TIME") }
+    var scheduleTimes by remember { mutableStateOf("08:00,20:00") }
+    var scheduleInterval by remember { mutableStateOf("8") }
 
     suspend fun refreshMeds() {
         val result = repo.getMedications()
@@ -112,11 +116,80 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                                     }
                                 }) { Text("删除", color = MaterialTheme.colorScheme.error) }
                             }
+                            // Schedule indicator
+                            if (med.schedules != null && med.schedules.isNotEmpty()) {
+                                Text(
+                                    med.schedules!!.joinToString(", ") { s ->
+                                        when (s.scheduleType) {
+                                            "FIXED_TIME" -> "每日 ${(s.fixedTimes?:emptyList<String>()).joinToString("、")}"
+                                            "INTERVAL" -> "每${s.intervalHours}小时"
+                                            else -> "已设提醒"
+                                        }
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { showSchedule = med.id },
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                Text(if (med.schedules != null && med.schedules!!.any { it.isEnabled }) "修改提醒" else "设置提醒")
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    // Schedule dialog
+    if (showSchedule != null) {
+        AlertDialog(
+            onDismissRequest = { showSchedule = null },
+            title = { Text("设置用药提醒") },
+            text = {
+                Column {
+                    Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+                        FilterChip(selected = scheduleType == "FIXED_TIME", onClick = { scheduleType = "FIXED_TIME" }, label = { Text("固定时间") })
+                        FilterChip(selected = scheduleType == "INTERVAL", onClick = { scheduleType = "INTERVAL" }, label = { Text("间隔") })
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (scheduleType == "FIXED_TIME") {
+                        OutlinedTextField(
+                            value = scheduleTimes, onValueChange = { scheduleTimes = it },
+                            label = { Text("时间 (逗号分隔, 如 08:00,20:00)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        OutlinedTextField(
+                            value = scheduleInterval, onValueChange = { scheduleInterval = it },
+                            label = { Text("每 N 小时") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        val medId = showSchedule!!
+                        val times = if (scheduleType == "FIXED_TIME")
+                            scheduleTimes.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        else emptyList()
+                        val interval = scheduleInterval.toIntOrNull()
+                        repo.createSchedule(medId, scheduleType, times, interval)
+                            .onSuccess {
+                                snackbarHostState.showSnackbar("提醒已设置")
+                                refreshMeds()
+                                showSchedule = null
+                            }
+                            .onFailure { snackbarHostState.showSnackbar("设置失败: ${it.message}") }
+                    }
+                }) { Text("保存") }
+            },
+            dismissButton = { TextButton(onClick = { showSchedule = null }) { Text("取消") } }
+        )
     }
 
     if (showAdd) {

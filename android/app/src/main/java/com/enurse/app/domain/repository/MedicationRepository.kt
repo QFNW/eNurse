@@ -9,6 +9,7 @@ interface MedicationRepository {
     suspend fun getMedications(): Result<List<MedicationResponse>>
     suspend fun createMedication(name: String, dosage: String? = null): Result<MedicationResponse>
     suspend fun deleteMedication(id: String)
+    suspend fun createSchedule(medicationId: String, scheduleType: String, times: List<String>, intervalHours: Int? = null): Result<Any>
     suspend fun record(userId: String, medicationId: String, takenAt: String): Result<MedicationRecordResponse>
     suspend fun recordOffline(userId: String, medicationId: String, medicationName: String, takenAt: String)
     fun getLocalRecords(userId: String): Flow<List<MedicationRecordEntity>>

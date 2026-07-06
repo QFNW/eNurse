@@ -38,6 +38,14 @@ class MedicationRepositoryImpl @Inject constructor(
         medicationApi.delete(id)
     }
 
+    override suspend fun createSchedule(medicationId: String, scheduleType: String, times: List<String>, intervalHours: Int?): Result<Any> =
+        runCatching {
+            val body = mutableMapOf<String, Any>("scheduleType" to scheduleType)
+            if (scheduleType == "FIXED_TIME") body["fixedTimes"] = times
+            if (intervalHours != null) body["intervalHours"] = intervalHours
+            medicationApi.createSchedule(medicationId, body)
+        }
+
     override suspend fun record(userId: String, medicationId: String, takenAt: String): Result<MedicationRecordResponse> =
         runCatching {
             val res = medicationApi.createRecord(mapOf("medicationId" to medicationId, "takenAt" to takenAt))

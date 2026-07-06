@@ -30,7 +30,7 @@ export class AuthService {
         data: {
           email: dto.email,
           passwordHash,
-          role: 'PATIENT',
+          role: dto.role,
         },
       });
     } catch (err: any) {
