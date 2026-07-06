@@ -20,7 +20,7 @@ fun LoginScreen(
     onGoRegister: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var email by remember { mutableStateOf("") }
+    var login by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val state by viewModel.state.collectAsState()
 
@@ -44,10 +44,10 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("邮箱") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                value = login,
+                onValueChange = { login = it },
+                label = { Text("用户名或邮箱") },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -69,9 +69,9 @@ fun LoginScreen(
             }
 
             Button(
-                onClick = { viewModel.login(email, password) },
+                onClick = { viewModel.login(login, password) },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                enabled = !state.isLoading && email.isNotBlank() && password.isNotBlank()
+                enabled = !state.isLoading && login.isNotBlank() && password.isNotBlank()
             ) {
                 Text(if (state.isLoading) "登录中..." else "登录")
             }

@@ -5,6 +5,6 @@ import com.enurse.app.domain.repository.AuthRepository
 import javax.inject.Inject
 
 class LoginUseCase @Inject constructor(private val repo: AuthRepository) {
-    suspend operator fun invoke(email: String, password: String): Result<AuthResponse> =
-        repo.login(email, password)
+    suspend operator fun invoke(login: String, password: String): Result<AuthResponse> =
+        repo.login(login, password)
 }

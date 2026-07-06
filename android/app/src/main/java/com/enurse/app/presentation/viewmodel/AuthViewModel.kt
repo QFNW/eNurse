@@ -24,10 +24,10 @@ class AuthViewModel @Inject constructor(
     private val _state = MutableStateFlow(AuthUiState())
     val state: StateFlow<AuthUiState> = _state
 
-    fun login(email: String, password: String) {
+    fun login(login: String, password: String) {
         viewModelScope.launch {
             _state.value = AuthUiState(isLoading = true)
-            authRepository.login(email, password)
+            authRepository.login(login, password)
                 .onSuccess { res ->
                     _state.value = AuthUiState(success = true, userRole = res.user.role)
                 }
@@ -37,10 +37,10 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun register(email: String, password: String, role: String) {
+    fun register(username: String, displayName: String, email: String, password: String, role: String) {
         viewModelScope.launch {
             _state.value = AuthUiState(isLoading = true)
-            authRepository.register(email, password, role)
+            authRepository.register(username, displayName, email, password, role)
                 .onSuccess { res ->
                     _state.value = AuthUiState(success = true, userRole = res.user.role)
                 }

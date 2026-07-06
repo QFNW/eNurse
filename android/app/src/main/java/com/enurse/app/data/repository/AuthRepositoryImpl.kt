@@ -13,17 +13,17 @@ class AuthRepositoryImpl @Inject constructor(
     private val tokenDataStore: TokenDataStore
 ) : AuthRepository {
 
-    override suspend fun register(email: String, password: String, role: String): Result<AuthResponse> =
+    override suspend fun register(username: String, displayName: String, email: String, password: String, role: String): Result<AuthResponse> =
         runCatching {
-            val res = authApi.register(RegisterRequest(email, password, role))
+            val res = authApi.register(RegisterRequest(username, displayName, email, password, role))
             tokenDataStore.saveTokens(res.accessToken, res.refreshToken)
             tokenDataStore.saveUserInfo(res.user.id, res.user.role)
             res
         }
 
-    override suspend fun login(email: String, password: String): Result<AuthResponse> =
+    override suspend fun login(login: String, password: String): Result<AuthResponse> =
         runCatching {
-            val res = authApi.login(LoginRequest(email, password))
+            val res = authApi.login(LoginRequest(login, password))
             tokenDataStore.saveTokens(res.accessToken, res.refreshToken)
             tokenDataStore.saveUserInfo(res.user.id, res.user.role)
             res
