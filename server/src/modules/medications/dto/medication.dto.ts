@@ -1,7 +1,7 @@
 import {
   IsString,
   IsOptional,
-  IsInt,
+  IsNumber,
   IsEnum,
   IsArray,
   Min,
@@ -53,8 +53,8 @@ export class CreateScheduleDto {
   scheduleType: ScheduleType;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
+  @IsNumber()
+  @Min(0)
   intervalHours?: number;
 
   @IsOptional()
@@ -69,8 +69,8 @@ export class CreateScheduleDto {
 
 export class UpdateScheduleDto {
   @IsOptional()
-  @IsInt()
-  @Min(1)
+  @IsNumber()
+  @Min(0)
   intervalHours?: number;
 
   @IsOptional()
@@ -93,4 +93,8 @@ export class CreateMedicationRecordDto {
 
   @IsString()
   takenAt: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

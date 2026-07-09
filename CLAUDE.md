@@ -36,3 +36,8 @@ eNurse/
 - 医疗护理风格，主色调蓝色系
 - 警报状态用红色 #D32F2F（加粗大号字体）
 - 正常状态蓝色系
+
+## Compose 规则
+
+- **禁止用 if/else 或 AnimatedVisibility 切换 TextField/OutlinedTextField**。切换会导致 Compose 销毁并重建 TextField，输入状态（光标、IME 组合）丢失。始终使用单一 TextField + 动态绑定 `value`/`onValueChange`/`label`。
+- **`SnackbarHostState.showSnackbar()` 是 suspend 函数**，suspend 到 snackbar 消失才返回。始终将 `refresh*()` / 状态更新放在 `showSnackbar()` **之前**，否则 UI 会延迟 2-3 秒才刷新。**这是项目中反复出现的 bug，每次新加 snackbar 都必须检查顺序。**

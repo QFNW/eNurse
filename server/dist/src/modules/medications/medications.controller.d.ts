@@ -38,6 +38,27 @@ export declare class MedicationsController {
         unit: string | null;
         isActive: boolean;
     })[]>;
+    createRecord(user: JwtPayload, dto: CreateMedicationRecordDto): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        notes: string | null;
+        medicationId: string;
+        takenAt: Date;
+    }>;
+    getRecords(user: JwtPayload, from?: string, to?: string): Promise<({
+        medication: {
+            id: string;
+            name: string;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        userId: string;
+        notes: string | null;
+        medicationId: string;
+        takenAt: Date;
+    })[]>;
     findById(user: JwtPayload, id: string): Promise<{
         schedules: {
             id: string;
@@ -116,23 +137,4 @@ export declare class MedicationsController {
         fixedTimes: import("@prisma/client/runtime/client").JsonValue | null;
         startTime: Date | null;
     }>;
-    createRecord(user: JwtPayload, dto: CreateMedicationRecordDto): Promise<{
-        id: string;
-        createdAt: Date;
-        userId: string;
-        medicationId: string;
-        takenAt: Date;
-    }>;
-    getRecords(user: JwtPayload, from?: string, to?: string): Promise<({
-        medication: {
-            id: string;
-            name: string;
-        };
-    } & {
-        id: string;
-        createdAt: Date;
-        userId: string;
-        medicationId: string;
-        takenAt: Date;
-    })[]>;
 }

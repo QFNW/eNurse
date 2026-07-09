@@ -23,7 +23,6 @@ fun AppNavGraph() {
     val navController = rememberNavController()
     val context = LocalContext.current
 
-    // Check if logged in
     val appContext = context.applicationContext
     val tokenDataStore = run {
         val entryPoint = EntryPointAccessors.fromApplication(
@@ -48,7 +47,16 @@ fun AppNavGraph() {
         }
     }
 
-    if (startDest == null) return // loading
+    // Watch for token clear (AuthInterceptor clears on 401) → force redirect to login
+    LaunchedEffect(Unit) {
+        tokenDataStore.accessToken.collect { token ->
+            if (token == null && startDest != null && startDest != "auth/login") {
+                navController.navigate("auth/login") { popUpTo(0) { inclusive = true } }
+            }
+        }
+    }
+
+    if (startDest == null) return
 
     NavHost(navController = navController, startDestination = startDest!!) {
         composable("auth/login") {
@@ -97,8 +105,8 @@ fun AppNavGraph() {
         }
         composable("nurse/groups") {
             NurseGroupListScreen(
-                onGoDetail = { id -> navController.navigate("nurse/groups/$id") },
-                onLogout = {
+                onGoGroup = { id -> navController.navigate("nurse/groups/$id") },
+                onGoBack = {
                     kotlinx.coroutines.runBlocking {
                         tokenDataStore.clear()
                     }
@@ -112,7 +120,7 @@ fun AppNavGraph() {
             val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
             NurseGroupDetailScreen(
                 groupId = groupId,
-                onGoMember = { memberId -> navController.navigate("nurse/groups/$groupId/members/$memberId") },
+                onGoMember = { gid, uid -> navController.navigate("nurse/groups/$gid/members/$uid") },
                 onGoBack = { navController.popBackStack() }
             )
         }
@@ -121,7 +129,7 @@ fun AppNavGraph() {
             val memberId = backStackEntry.arguments?.getString("memberId") ?: return@composable
             MemberDetailScreen(
                 groupId = groupId,
-                memberId = memberId,
+                userId = memberId,
                 onGoBack = { navController.popBackStack() }
             )
         }

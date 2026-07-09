@@ -89,7 +89,7 @@ let MedicationsService = class MedicationsService {
                 scheduleType: dto.scheduleType,
                 intervalHours: dto.intervalHours,
                 fixedTimes: dto.fixedTimes,
-                startTime: dto.startTime ? new Date(dto.startTime) : null,
+                startTime: dto.startTime ? new Date(dto.startTime) : new Date(),
             },
         });
     }
@@ -140,7 +140,8 @@ let MedicationsService = class MedicationsService {
             data: {
                 medicationId: dto.medicationId,
                 userId,
-                takenAt: new Date(dto.takenAt),
+                takenAt: new Date(),
+                ...(dto.notes ? { notes: dto.notes } : {}),
             },
         });
     }

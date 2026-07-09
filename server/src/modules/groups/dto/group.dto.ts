@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsInt, IsArray, Min, Matches } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsInt, IsNumber, IsArray, Min, Matches } from 'class-validator';
 
 export class CreateGroupDto {
   @IsString()
@@ -40,8 +40,8 @@ export class UpdateMemberStrategyDto {
   scheduleType?: string;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
+  @IsNumber()
+  @Min(0)
   intervalHours?: number;
 
   @IsOptional()

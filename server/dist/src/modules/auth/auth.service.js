@@ -67,7 +67,9 @@ let AuthService = class AuthService {
         try {
             user = await this.prisma.user.create({
                 data: {
+                    username: dto.username,
                     email: dto.email,
+                    displayName: dto.displayName,
                     passwordHash,
                     role: dto.role,
                 },
@@ -75,31 +77,35 @@ let AuthService = class AuthService {
         }
         catch (err) {
             if (err.code === 'P2002') {
-                throw new common_1.ConflictException('该邮箱已被注册');
+                const msg = (err.meta?.target || []).includes('username')
+                    ? '该用户名已被注册'
+                    : '该邮箱已被注册';
+                throw new common_1.ConflictException(msg);
             }
             throw err;
         }
-        const tokens = await this.generateTokens(user.id, user.email, user.role);
+        const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);
         return {
             ...tokens,
-            user: { id: user.id, email: user.email, role: user.role },
+            user: { id: user.id, username: user.username, email: user.email, role: user.role, displayName: user.displayName },
         };
     }
     async login(dto) {
-        const user = await this.prisma.user.findUnique({
-            where: { email: dto.email },
-        });
+        const isEmail = dto.login?.includes('@');
+        const user = isEmail
+            ? await this.prisma.user.findUnique({ where: { email: dto.login } })
+            : await this.prisma.user.findUnique({ where: { username: dto.login } });
         if (!user) {
-            throw new common_1.UnauthorizedException('邮箱或密码错误');
+            throw new common_1.UnauthorizedException('用户名或密码错误');
         }
         const valid = await bcrypt.compare(dto.password, user.passwordHash);
         if (!valid) {
-            throw new common_1.UnauthorizedException('邮箱或密码错误');
+            throw new common_1.UnauthorizedException('用户名或密码错误');
         }
-        const tokens = await this.generateTokens(user.id, user.email, user.role);
+        const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);
         return {
             ...tokens,
-            user: { id: user.id, email: user.email, role: user.role },
+            user: { id: user.id, username: user.username, email: user.email, role: user.role, displayName: user.displayName },
         };
     }
     async refresh(refreshToken) {
@@ -116,7 +122,7 @@ let AuthService = class AuthService {
             if (!user) {
                 throw new common_1.UnauthorizedException('用户不存在');
             }
-            const tokens = await this.generateTokens(user.id, user.email, user.role);
+            const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);
             if (payload.tokenId) {
                 const remainingSeconds = payload.exp
                     ? payload.exp - Math.floor(Date.now() / 1000)
@@ -125,7 +131,7 @@ let AuthService = class AuthService {
             }
             return {
                 ...tokens,
-                user: { id: user.id, email: user.email, role: user.role },
+                user: { id: user.id, username: user.username, email: user.email, role: user.role, displayName: user.displayName },
             };
         }
         catch (err) {
@@ -157,14 +163,14 @@ let AuthService = class AuthService {
         }
         return { message: '已登出' };
     }
-    async generateTokens(userId, email, role) {
+    async generateTokens(userId, username, email, role) {
         const tokenId = (0, crypto_1.randomUUID)();
         const accessSecret = this.configService.get('jwt.accessSecret');
         const accessExpires = this.configService.get('jwt.accessExpiresIn');
         const refreshSecret = this.configService.get('jwt.refreshSecret');
         const refreshExpires = this.configService.get('jwt.refreshExpiresIn');
         const [accessToken, refreshToken] = await Promise.all([
-            this.jwtService.signAsync({ sub: userId, email, role }, { secret: accessSecret, expiresIn: accessExpires }),
+            this.jwtService.signAsync({ sub: userId, username, email, role }, { secret: accessSecret, expiresIn: accessExpires }),
             this.jwtService.signAsync({ sub: userId, tokenId }, { secret: refreshSecret, expiresIn: refreshExpires }),
         ]);
         return { accessToken, refreshToken };

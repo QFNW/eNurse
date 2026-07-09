@@ -47,10 +47,11 @@ async function main() {
         where: { email: 'admin@enurse.com' },
         update: {},
         create: {
+            username: 'admin',
             email: 'admin@enurse.com',
             passwordHash: adminPassword,
             role: 'ADMIN',
-            nickname: '系统管理员',
+            displayName: '系统管理员',
         },
     });
     console.log('Seed complete: admin account created.');

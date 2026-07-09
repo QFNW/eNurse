@@ -30,6 +30,12 @@ let MedicationsController = class MedicationsController {
     findAll(user) {
         return this.medicationsService.findAll(user.sub);
     }
+    createRecord(user, dto) {
+        return this.medicationsService.createRecord(user.sub, dto);
+    }
+    getRecords(user, from, to) {
+        return this.medicationsService.getRecords(user.sub, from, to);
+    }
     findById(user, id) {
         return this.medicationsService.findById(user.sub, id);
     }
@@ -47,12 +53,6 @@ let MedicationsController = class MedicationsController {
     }
     deleteSchedule(user, scheduleId) {
         return this.medicationsService.deleteSchedule(user.sub, scheduleId);
-    }
-    createRecord(user, dto) {
-        return this.medicationsService.createRecord(user.sub, dto);
-    }
-    getRecords(user, from, to) {
-        return this.medicationsService.getRecords(user.sub, from, to);
     }
 };
 exports.MedicationsController = MedicationsController;
@@ -73,6 +73,25 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], MedicationsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Post)('records'),
+    (0, roles_decorator_1.Roles)(client_1.Role.PATIENT),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, medication_dto_1.CreateMedicationRecordDto]),
+    __metadata("design:returntype", void 0)
+], MedicationsController.prototype, "createRecord", null);
+__decorate([
+    (0, common_1.Get)('records'),
+    (0, roles_decorator_1.Roles)(client_1.Role.PATIENT),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('from')),
+    __param(2, (0, common_1.Query)('to')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], MedicationsController.prototype, "getRecords", null);
 __decorate([
     (0, common_1.Get)(':id'),
     (0, roles_decorator_1.Roles)(client_1.Role.PATIENT),
@@ -130,25 +149,6 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], MedicationsController.prototype, "deleteSchedule", null);
-__decorate([
-    (0, common_1.Post)('records'),
-    (0, roles_decorator_1.Roles)(client_1.Role.PATIENT),
-    __param(0, (0, current_user_decorator_1.CurrentUser)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, medication_dto_1.CreateMedicationRecordDto]),
-    __metadata("design:returntype", void 0)
-], MedicationsController.prototype, "createRecord", null);
-__decorate([
-    (0, common_1.Get)('records'),
-    (0, roles_decorator_1.Roles)(client_1.Role.PATIENT),
-    __param(0, (0, current_user_decorator_1.CurrentUser)()),
-    __param(1, (0, common_1.Query)('from')),
-    __param(2, (0, common_1.Query)('to')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String]),
-    __metadata("design:returntype", void 0)
-], MedicationsController.prototype, "getRecords", null);
 exports.MedicationsController = MedicationsController = __decorate([
     (0, common_1.Controller)('api/v1/medications'),
     __metadata("design:paramtypes", [medications_service_1.MedicationsService])

@@ -1,11 +1,13 @@
 package com.enurse.app.presentation.viewmodel
 
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.enurse.app.data.local.datastore.TokenDataStore
 import com.enurse.app.data.remote.dto.response.AlertResponse
 import com.enurse.app.domain.repository.AlertRepository
 import com.enurse.app.domain.repository.BmRepository
+import com.enurse.app.domain.repository.MedicationRepository
+import com.enurse.app.presentation.alarm.AlarmScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,16 +25,42 @@ data class HomeUiState(
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    app: android.app.Application,
     private val bmRepository: BmRepository,
     private val alertRepository: AlertRepository,
+    private val medicationRepository: MedicationRepository,
     private val tokenDataStore: TokenDataStore
-) : ViewModel() {
+) : AndroidViewModel(app) {
 
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state
 
     init {
         loadAlerts()
+        // Poll alerts every 20s with ring/vibrate for new alerts
+        viewModelScope.launch {
+            while (isActive) {
+                kotlinx.coroutines.delay(20_000)
+                val oldIds = _state.value.alerts.map { it.id }.toSet()
+                alertRepository.getAlerts("active")
+                    .onSuccess { newAlerts ->
+                        _state.value = _state.value.copy(alerts = newAlerts)
+                        // Ring for genuinely new alerts
+                        val fresh = newAlerts.filter { it.id !in oldIds }
+                        if (fresh.isNotEmpty()) {
+                            _state.value = _state.value.copy(error = "⏰ 用药提醒：${fresh.first().message}")
+                            try {
+                                val app = getApplication<android.app.Application>()
+                                val vibrator = app.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                                vibrator?.vibrate(android.os.VibrationEffect.createWaveform(longArrayOf(0, 500, 500, 500, 500), -1))
+                                val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM)
+                                android.media.RingtoneManager.getRingtone(app, uri)?.play()
+                            } catch (_: Exception) {}
+                        }
+                    }
+                    .onFailure { _state.value = _state.value.copy(error = "提醒检查失败: ${it.message}") }
+            }
+        }
         // Periodic offline sync
         viewModelScope.launch {
             while (isActive) {
@@ -46,6 +74,21 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             alertRepository.getAlerts("active")
                 .onSuccess { _state.value = _state.value.copy(alerts = it) }
+        }
+    }
+
+    fun scheduleAlarms(context: android.content.Context) {
+        viewModelScope.launch {
+            medicationRepository.getMedications()
+                .onSuccess { meds ->
+                    val schedules = meds.flatMap { med ->
+                        (med.schedules ?: emptyList()).map { Pair(med.name, it) }
+                    }
+                    if (schedules.isNotEmpty()) {
+                        AlarmScheduler.cancelAll(context)
+                        AlarmScheduler.scheduleMedicationAlarms(context, schedules)
+                    }
+                }
         }
     }
 

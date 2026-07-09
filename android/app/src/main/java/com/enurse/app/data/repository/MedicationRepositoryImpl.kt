@@ -38,7 +38,7 @@ class MedicationRepositoryImpl @Inject constructor(
         medicationApi.delete(id)
     }
 
-    override suspend fun createSchedule(medicationId: String, scheduleType: String, times: List<String>, intervalHours: Int?): Result<Any> =
+    override suspend fun createSchedule(medicationId: String, scheduleType: String, times: List<String>, intervalHours: Double?): Result<Any> =
         runCatching {
             val body = mutableMapOf<String, Any>("scheduleType" to scheduleType)
             if (scheduleType == "FIXED_TIME") body["fixedTimes"] = times
@@ -46,9 +46,18 @@ class MedicationRepositoryImpl @Inject constructor(
             medicationApi.createSchedule(medicationId, body)
         }
 
-    override suspend fun record(userId: String, medicationId: String, takenAt: String): Result<MedicationRecordResponse> =
+    override suspend fun getRecords(): Result<List<MedicationRecordResponse>> =
+        runCatching { medicationApi.getRecords() }
+
+    override suspend fun deleteSchedule(scheduleId: String) {
+        medicationApi.deleteSchedule(scheduleId)
+    }
+
+    override suspend fun record(userId: String, medicationId: String, takenAt: String, notes: String?): Result<MedicationRecordResponse> =
         runCatching {
-            val res = medicationApi.createRecord(mapOf("medicationId" to medicationId, "takenAt" to takenAt))
+            val body = mutableMapOf("medicationId" to medicationId, "takenAt" to takenAt)
+            if (notes != null) body["notes"] = notes
+            val res = medicationApi.createRecord(body)
             val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
             medicationDao.insert(MedicationRecordEntity(
                 id = res.id, medicationId = medicationId,

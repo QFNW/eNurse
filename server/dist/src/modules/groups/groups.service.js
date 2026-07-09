@@ -88,6 +88,7 @@ let GroupsService = class GroupsService {
                         createdBy: true,
                         createdAt: true,
                         updatedAt: true,
+                        creator: { select: { id: true, email: true, nickname: true, role: true } },
                         _count: { select: { members: true } },
                     },
                 },
@@ -166,6 +167,19 @@ let GroupsService = class GroupsService {
                 include: { group: true },
             });
         }, { isolationLevel: 'Serializable' });
+    }
+    async leave(userId, groupId) {
+        const membership = await this.prisma.groupMember.findUnique({
+            where: { groupId_userId: { groupId, userId } },
+        });
+        if (!membership)
+            throw new common_1.NotFoundException('未加入该小组');
+        if (membership.roleInGroup === 'OWNER') {
+            throw new common_1.BadRequestException('组长不能退出，请先转让组长或删除小组');
+        }
+        return this.prisma.groupMember.delete({
+            where: { groupId_userId: { groupId, userId } },
+        });
     }
     async getMembers(userId, groupId) {
         await this.ensureOwner(userId, groupId);

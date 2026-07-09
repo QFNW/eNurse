@@ -42,6 +42,30 @@ export class MedicationsController {
     return this.medicationsService.findAll(user.sub);
   }
 
+  // ========== Records ==========
+  // Must be before :id to avoid route conflict
+
+  @Post('records')
+  @Roles(Role.PATIENT)
+  createRecord(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateMedicationRecordDto,
+  ) {
+    return this.medicationsService.createRecord(user.sub, dto);
+  }
+
+  @Get('records')
+  @Roles(Role.PATIENT)
+  getRecords(
+    @CurrentUser() user: JwtPayload,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.medicationsService.getRecords(user.sub, from, to);
+  }
+
+  // ========== Single medication ==========
+
   @Get(':id')
   @Roles(Role.PATIENT)
   findById(
@@ -101,24 +125,4 @@ export class MedicationsController {
     return this.medicationsService.deleteSchedule(user.sub, scheduleId);
   }
 
-  // ========== Records ==========
-
-  @Post('records')
-  @Roles(Role.PATIENT)
-  createRecord(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateMedicationRecordDto,
-  ) {
-    return this.medicationsService.createRecord(user.sub, dto);
-  }
-
-  @Get('records')
-  @Roles(Role.PATIENT)
-  getRecords(
-    @CurrentUser() user: JwtPayload,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
-    return this.medicationsService.getRecords(user.sub, from, to);
-  }
 }

@@ -8,12 +8,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enurse.app.data.remote.dto.response.AlertResponse
 import com.enurse.app.presentation.theme.AlertRed
 import com.enurse.app.presentation.theme.AlertRedBg
+import com.enurse.app.presentation.theme.ErrorBorder
 
 @Composable
 fun AlertBanner(
@@ -23,31 +25,46 @@ fun AlertBanner(
 ) {
     if (alerts.isEmpty()) return
 
-    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(modifier = modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
         Text(
             text = "⚠ 警报提醒",
             color = AlertRed,
-            fontSize = 20.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Spacer(modifier = Modifier.height(10.dp))
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(alerts) { alert ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = AlertRedBg)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = alert.message,
-                            color = AlertRed,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
+                    Row(modifier = Modifier.padding(16.dp)) {
+                        // Left red indicator
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(AlertRed)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(onClick = { onResolve(alert.id) }) {
-                            Text("已处理", color = AlertRed)
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = alert.message,
+                                color = AlertRed,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 22.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(
+                                onClick = { onResolve(alert.id) },
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Text("标记已处理 →", color = AlertRed, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }

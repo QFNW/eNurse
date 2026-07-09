@@ -13,11 +13,23 @@ exports.RegisterDto = void 0;
 const class_validator_1 = require("class-validator");
 const client_1 = require("../../../../generated/prisma/client");
 class RegisterDto {
+    username;
+    displayName;
     email;
     password;
     role;
 }
 exports.RegisterDto = RegisterDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9_]{3,20}$/, { message: '用户名须为3-20位字母数字下划线' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "username", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(20, { message: '姓名不超过20字节' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "displayName", void 0);
 __decorate([
     (0, class_validator_1.IsEmail)(),
     __metadata("design:type", String)

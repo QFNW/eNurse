@@ -27,4 +27,5 @@ export declare class UpdateScheduleDto {
 export declare class CreateMedicationRecordDto {
     medicationId: string;
     takenAt: string;
+    notes?: string;
 }

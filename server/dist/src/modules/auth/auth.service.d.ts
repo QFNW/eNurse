@@ -13,8 +13,10 @@ export declare class AuthService {
     register(dto: RegisterDto): Promise<{
         user: {
             id: string;
+            username: string;
             email: string;
             role: import("../../../generated/prisma/enums").Role;
+            displayName: string;
         };
         accessToken: string;
         refreshToken: string;
@@ -22,8 +24,10 @@ export declare class AuthService {
     login(dto: LoginDto): Promise<{
         user: {
             id: string;
+            username: string;
             email: string;
             role: import("../../../generated/prisma/enums").Role;
+            displayName: string;
         };
         accessToken: string;
         refreshToken: string;
@@ -31,8 +35,10 @@ export declare class AuthService {
     refresh(refreshToken: string): Promise<{
         user: {
             id: string;
+            username: string;
             email: string;
             role: import("../../../generated/prisma/enums").Role;
+            displayName: string;
         };
         accessToken: string;
         refreshToken: string;

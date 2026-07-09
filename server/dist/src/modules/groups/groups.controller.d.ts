@@ -28,7 +28,18 @@ export declare class GroupsController {
         inviteCode: string;
         createdBy: string;
     }>;
-    getMyGroups(user: JwtPayload): Promise<{
+    getMyGroups(user: JwtPayload): Promise<({
+        _count: {
+            members: number;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+        inviteCode: string;
+        createdBy: string;
+    })[] | {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -36,6 +47,12 @@ export declare class GroupsController {
         createdBy: string;
         _count: {
             members: number;
+        };
+        creator: {
+            id: string;
+            email: string;
+            nickname: string | null;
+            role: Role;
         };
     }[]>;
     getById(user: JwtPayload, id: string): Promise<{
@@ -116,6 +133,13 @@ export declare class GroupsController {
         roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
         joinedAt: Date;
     }[]>;
+    leave(user: JwtPayload, id: string): Promise<{
+        id: string;
+        groupId: string;
+        userId: string;
+        roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
+        joinedAt: Date;
+    }>;
     removeMember(user: JwtPayload, id: string, memberId: string): Promise<{
         id: string;
         groupId: string;
@@ -149,6 +173,7 @@ export declare class GroupsController {
             id: string;
             createdAt: Date;
             userId: string;
+            notes: string | null;
             medicationId: string;
             takenAt: Date;
         })[];

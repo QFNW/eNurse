@@ -22,7 +22,7 @@ let BmService = class BmService {
         return this.prisma.bmRecord.create({
             data: {
                 userId,
-                recordedAt: (0, date_utils_1.parseDate)(dto.recordedAt, 'recordedAt'),
+                recordedAt: new Date(),
                 notes: dto.notes,
             },
         });

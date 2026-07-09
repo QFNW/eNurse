@@ -24,7 +24,7 @@ data class Medication(
 data class Schedule(
     val id: String,
     val scheduleType: String,
-    val intervalHours: Int?,
+    val intervalHours: Double?,
     val fixedTimes: List<String>?,
     val isEnabled: Boolean,
     val isLocked: Boolean

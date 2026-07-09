@@ -3,8 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const swagger_1 = require("@nestjs/swagger");
 const app_module_1 = require("./app.module");
+const chinese_exception_filter_1 = require("./common/filters/chinese-exception.filter");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    app.useGlobalFilters(new chinese_exception_filter_1.ChineseExceptionFilter());
     app.enableCors({
         origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
         credentials: true,

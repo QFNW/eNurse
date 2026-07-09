@@ -127,7 +127,8 @@ let AlertEngineService = AlertEngineService_1 = class AlertEngineService {
             }
             const hoursSinceStart = (now.getTime() - new Date(schedule.startTime).getTime()) / (1000 * 60 * 60);
             const roundedHours = Math.round(hoursSinceStart * 60) / 60;
-            if (roundedHours > 0 && roundedHours % intervalHours < 1 / 60) {
+            const remainder = roundedHours % intervalHours;
+            if (roundedHours > 0 && (remainder < 1 / 60 || intervalHours - remainder < 1 / 60)) {
                 shouldRemind = true;
             }
         }

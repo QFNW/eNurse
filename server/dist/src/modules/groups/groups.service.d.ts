@@ -27,7 +27,18 @@ export declare class GroupsService {
         inviteCode: string;
         createdBy: string;
     }>;
-    findByUser(userId: string, role: string): Promise<{
+    findByUser(userId: string, role: string): Promise<({
+        _count: {
+            members: number;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+        inviteCode: string;
+        createdBy: string;
+    })[] | {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -35,6 +46,12 @@ export declare class GroupsService {
         createdBy: string;
         _count: {
             members: number;
+        };
+        creator: {
+            id: string;
+            email: string;
+            nickname: string | null;
+            role: Role;
         };
     }[]>;
     findById(userId: string, groupId: string): Promise<{
@@ -101,6 +118,13 @@ export declare class GroupsService {
         roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
         joinedAt: Date;
     }>;
+    leave(userId: string, groupId: string): Promise<{
+        id: string;
+        groupId: string;
+        userId: string;
+        roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
+        joinedAt: Date;
+    }>;
     getMembers(userId: string, groupId: string): Promise<{
         alertCount: number;
         user: {
@@ -148,6 +172,7 @@ export declare class GroupsService {
             id: string;
             createdAt: Date;
             userId: string;
+            notes: string | null;
             medicationId: string;
             takenAt: Date;
         })[];

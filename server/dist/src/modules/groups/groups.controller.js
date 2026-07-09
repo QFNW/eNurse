@@ -48,6 +48,9 @@ let GroupsController = class GroupsController {
     getMembers(user, id) {
         return this.groupsService.getMembers(user.sub, id);
     }
+    leave(user, id) {
+        return this.groupsService.leave(user.sub, id);
+    }
     removeMember(user, id, memberId) {
         return this.groupsService.removeMember(user.sub, id, memberId);
     }
@@ -141,6 +144,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], GroupsController.prototype, "getMembers", null);
+__decorate([
+    (0, common_1.Post)(':id/leave'),
+    (0, roles_decorator_1.Roles)(client_1.Role.PATIENT),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], GroupsController.prototype, "leave", null);
 __decorate([
     (0, common_1.Delete)(':id/members/:userId'),
     (0, roles_decorator_1.Roles)(client_1.Role.NURSE),

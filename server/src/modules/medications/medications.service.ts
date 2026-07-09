@@ -102,7 +102,7 @@ export class MedicationsService {
         scheduleType: dto.scheduleType,
         intervalHours: dto.intervalHours,
         fixedTimes: dto.fixedTimes as any,
-        startTime: dto.startTime ? new Date(dto.startTime) : null,
+        startTime: dto.startTime ? new Date(dto.startTime) : new Date(),
       },
     });
   }
@@ -164,6 +164,7 @@ export class MedicationsService {
         medicationId: dto.medicationId,
         userId,
         takenAt: new Date(),
+        ...(dto.notes ? { notes: dto.notes } : {}),
       },
     });
   }

@@ -16,7 +16,7 @@ data class ScheduleResponse(
     val id: String,
     val medicationId: String,
     val scheduleType: String,
-    val intervalHours: Int?,
+    val intervalHours: Double?,
     val fixedTimes: List<String>?,
     val isEnabled: Boolean,
     val isLocked: Boolean
@@ -27,6 +27,7 @@ data class MedicationRecordResponse(
     val medicationId: String,
     val userId: String,
     val takenAt: String,
+    val notes: String? = null,
     val medication: MedicationBrief?
 )
 

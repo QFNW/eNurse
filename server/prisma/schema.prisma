@@ -133,7 +133,7 @@ model MedicationSchedule {
   id            String        @id @default(cuid())
   medicationId  String
   scheduleType  ScheduleType
-  intervalHours Int?
+  intervalHours Float?
   fixedTimes    Json?
   startTime     DateTime?
   isEnabled     Boolean       @default(true)
@@ -150,6 +150,7 @@ model MedicationRecord {
   medicationId  String
   userId        String
   takenAt       DateTime
+  notes         String?
   createdAt     DateTime   @default(now())
 
   medication    Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)

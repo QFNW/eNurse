@@ -119,6 +119,7 @@ export declare class MedicationsService {
         id: string;
         createdAt: Date;
         userId: string;
+        notes: string | null;
         medicationId: string;
         takenAt: Date;
     }>;
@@ -131,6 +132,7 @@ export declare class MedicationsService {
         id: string;
         createdAt: Date;
         userId: string;
+        notes: string | null;
         medicationId: string;
         takenAt: Date;
     })[]>;
