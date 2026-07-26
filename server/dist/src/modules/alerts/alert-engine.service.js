@@ -145,7 +145,7 @@ let AlertEngineService = AlertEngineService_1 = class AlertEngineService {
                 userId,
                 type: client_1.AlertType.MEDICATION_REMINDER,
                 isResolved: false,
-                createdAt: { gte: new Date(now.getTime() - 5 * 60 * 1000) },
+                createdAt: { gte: new Date(now.getTime() - 1 * 60 * 1000) },
             },
         });
         if (existingAlert)
