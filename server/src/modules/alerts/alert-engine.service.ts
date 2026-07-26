@@ -145,7 +145,7 @@ export class AlertEngineService {
         userId,
         type: AlertType.MEDICATION_REMINDER,
         isResolved: false,
-        createdAt: { gte: new Date(now.getTime() - 5 * 60 * 1000) },
+        createdAt: { gte: new Date(now.getTime() - 1 * 60 * 1000) },
       },
     });
     if (existingAlert) return;

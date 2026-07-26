@@ -7,6 +7,7 @@ import com.enurse.app.domain.repository.GroupRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,6 +29,22 @@ class NurseViewModel @Inject constructor(
     private val _state = MutableStateFlow(NurseUiState())
     val state: StateFlow<NurseUiState> = _state
 
+    private var activeGroupId: String? = null
+    private var activeUserId: String? = null
+
+    init {
+        // Auto-refresh members + events every 30s
+        viewModelScope.launch {
+            while (isActive) {
+                activeGroupId?.let { gid ->
+                    loadGroupDetail(gid)
+                    activeUserId?.let { uid -> loadMemberEvents(gid, uid) }
+                }
+                kotlinx.coroutines.delay(30_000)
+            }
+        }
+    }
+
     fun loadGroups() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
@@ -46,6 +63,7 @@ class NurseViewModel @Inject constructor(
     }
 
     fun loadGroupDetail(groupId: String) {
+        activeGroupId = groupId
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
             groupRepository.getGroupDetail(groupId)
@@ -62,6 +80,8 @@ class NurseViewModel @Inject constructor(
     }
 
     fun loadMemberEvents(groupId: String, userId: String) {
+        activeGroupId = groupId
+        activeUserId = userId
         viewModelScope.launch {
             groupRepository.getMemberEvents(groupId, userId)
                 .onSuccess { _state.value = _state.value.copy(memberEvents = it) }

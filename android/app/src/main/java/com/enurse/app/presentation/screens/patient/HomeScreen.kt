@@ -7,7 +7,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,10 +27,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val context = LocalContext.current
-
-    // Schedule medication alarms on first load
-    LaunchedEffect(Unit) { try { viewModel.scheduleAlarms(context) } catch (_: Exception) {} }
 
     Scaffold(
         containerColor = Background,
@@ -55,11 +50,6 @@ fun HomeScreen(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             // Alert banner — fixed at top, always visible
             AlertBanner(alerts = state.alerts, onResolve = { viewModel.resolveAlert(it) })
-
-            // Show reminder/error messages always (outside scroll area)
-            if (!state.error.isNullOrBlank() && state.error!!.startsWith("⏰")) {
-                Text(state.error!!, color = AlertRed, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
-            }
 
             Column(
                 modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),

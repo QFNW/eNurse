@@ -31,6 +31,7 @@ fun MemberDetailScreen(
         viewModel.loadMemberStrategies(groupId, userId)
     }
 
+
     Scaffold(
         containerColor = Background,
         topBar = {

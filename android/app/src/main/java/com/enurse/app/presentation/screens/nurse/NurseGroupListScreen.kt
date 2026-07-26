@@ -101,6 +101,10 @@ fun NurseGroupListScreen(
         }
     }
 
+    if (!state.error.isNullOrBlank()) {
+        Text(state.error!!, color = AlertRed, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+    }
+
     // Create dialog
     if (showCreate) {
         AlertDialog(
