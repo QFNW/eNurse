@@ -12,7 +12,9 @@ data class UserBrief(
     val id: String,
     val email: String,
     val role: String,
-    val nickname: String? = null
+    val nickname: String? = null,
+    val displayName: String? = null,
+    val username: String? = null
 )
 
 data class UserResponse(

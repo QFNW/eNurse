@@ -49,19 +49,32 @@ const config_1 = require("@nestjs/config");
 const bcrypt = __importStar(require("bcrypt"));
 const prisma_service_1 = require("../../prisma/prisma.service");
 const cache_service_1 = require("../cache/cache.service");
+const email_service_1 = require("./email.service");
 const crypto_1 = require("crypto");
 let AuthService = class AuthService {
     prisma;
     jwtService;
     configService;
     cacheService;
-    constructor(prisma, jwtService, configService, cacheService) {
+    emailService;
+    constructor(prisma, jwtService, configService, cacheService, emailService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
         this.configService = configService;
         this.cacheService = cacheService;
+        this.emailService = emailService;
+    }
+    async sendCode(email) {
+        const existing = await this.prisma.user.findUnique({ where: { email } });
+        if (existing)
+            throw new common_1.ConflictException('该邮箱已被注册');
+        await this.emailService.sendVerificationCode(email);
+        return { message: '验证码已发送，5分钟内有效' };
     }
     async register(dto) {
+        const codeValid = await this.emailService.consumeCode(dto.email, dto.code);
+        if (!codeValid)
+            throw new common_1.BadRequestException('验证码错误或已过期');
         const passwordHash = await bcrypt.hash(dto.password, 12);
         let user;
         try {
@@ -182,6 +195,7 @@ exports.AuthService = AuthService = __decorate([
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         jwt_1.JwtService,
         config_1.ConfigService,
-        cache_service_1.CacheService])
+        cache_service_1.CacheService,
+        email_service_1.EmailService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

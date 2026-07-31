@@ -5,4 +5,5 @@ export declare class RegisterDto {
     email: string;
     password: string;
     role: Role;
+    code: string;
 }

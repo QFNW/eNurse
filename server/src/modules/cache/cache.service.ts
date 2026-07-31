@@ -38,6 +38,34 @@ export class CacheService implements OnModuleDestroy {
     }
   }
 
+  /** Store verification code with TTL in seconds */
+  async setCode(email: string, code: string, ttlSeconds: number): Promise<void> {
+    try {
+      await this.redis.set(`email_code:${email}`, code, 'EX', ttlSeconds);
+    } catch (err: any) {
+      console.error(`Redis setCode failed: ${err.message}`);
+    }
+  }
+
+  /** Get stored verification code */
+  async getCode(email: string): Promise<string | null> {
+    try {
+      return await this.redis.get(`email_code:${email}`);
+    } catch (err: any) {
+      console.error(`Redis getCode failed: ${err.message}`);
+      return null;
+    }
+  }
+
+  /** Delete verification code after successful verification */
+  async deleteCode(email: string): Promise<void> {
+    try {
+      await this.redis.del(`email_code:${email}`);
+    } catch (err: any) {
+      console.error(`Redis deleteCode failed: ${err.message}`);
+    }
+  }
+
   async onModuleDestroy() {
     await this.redis.quit();
   }

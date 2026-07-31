@@ -31,10 +31,20 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("PATIENT") }
+    var code by remember { mutableStateOf("") }
+    var countdown by remember { mutableStateOf(0) }
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(state.success) {
         if (state.success && state.userRole != null) onRegisterSuccess(state.userRole!!)
+    }
+
+    // Countdown timer
+    LaunchedEffect(countdown) {
+        if (countdown > 0) {
+            kotlinx.coroutines.delay(1000)
+            countdown--
+        }
     }
 
     Scaffold(
@@ -75,14 +85,47 @@ fun RegisterScreen(
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary)
             )
             Spacer(modifier = Modifier.height(14.dp))
+            // Email + send code button
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = email, onValueChange = { email = it },
+                    label = { Text("邮箱") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    modifier = Modifier.weight(1f), singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Button(
+                    onClick = {
+                        if (email.isNotBlank() && countdown == 0) {
+                            viewModel.sendCode(email)
+                            countdown = 60
+                        }
+                    },
+                    modifier = Modifier.height(56.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    enabled = email.isNotBlank() && countdown == 0 && !state.isLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) {
+                    Text(
+                        if (countdown > 0) "${countdown}s" else "获取验证码",
+                        fontSize = 13.sp, maxLines = 1
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(14.dp))
             OutlinedTextField(
-                value = email, onValueChange = { email = it },
-                label = { Text("邮箱") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                value = code, onValueChange = { code = it.filter { c -> c.isDigit() }.take(6) },
+                label = { Text("验证码") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth(), singleLine = true,
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary)
             )
+            if (state.codeSent) {
+                Text("验证码已发送，请查收邮箱", fontSize = 13.sp, color = Primary, modifier = Modifier.padding(top = 4.dp))
+            }
             Spacer(modifier = Modifier.height(14.dp))
             OutlinedTextField(
                 value = password, onValueChange = { password = it },
@@ -131,10 +174,10 @@ fun RegisterScreen(
             }
 
             Button(
-                onClick = { viewModel.register(username, displayName, email, password, role) },
+                onClick = { viewModel.register(username, displayName, email, password, role, code) },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(28.dp),
-                enabled = !state.isLoading && username.length >= 3 && email.isNotBlank() && password.length >= 8,
+                enabled = !state.isLoading && username.length >= 3 && email.isNotBlank() && password.length >= 8 && code.length == 6,
                 colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
                 Text(if (state.isLoading) "注册中..." else "注册", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)

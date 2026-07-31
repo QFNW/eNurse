@@ -40,9 +40,19 @@ export class GroupsService {
 
   async findByUser(userId: string, role: string) {
     if (role === 'NURSE') {
-      // Nurse sees groups they created
+      // Nurse sees groups they created OR where they're a member (e.g. as ADMIN)
+      const memberGroupIds = await this.prisma.groupMember.findMany({
+        where: { userId },
+        select: { groupId: true },
+      });
+      const ids = memberGroupIds.map((m) => m.groupId);
       return this.prisma.group.findMany({
-        where: { createdBy: userId },
+        where: {
+          OR: [
+            { createdBy: userId },
+            { id: { in: ids } },
+          ],
+        },
         include: {
           _count: { select: { members: true } },
         },
@@ -77,7 +87,7 @@ export class GroupsService {
         members: {
           include: {
             user: {
-              select: { id: true, email: true, nickname: true, role: true },
+              select: { id: true, email: true, nickname: true, role: true, displayName: true, username: true },
             },
           },
         },
@@ -89,8 +99,8 @@ export class GroupsService {
     const memberEntry = group.members.find((m) => m.userId === userId);
     if (!memberEntry) throw new ForbiddenException('无权访问该小组');
 
-    // Exclude inviteCode for non-owners
-    if (memberEntry.roleInGroup !== 'OWNER') {
+    // Exclude inviteCode for non-owner/non-admin
+    if (memberEntry.roleInGroup !== 'OWNER' && memberEntry.roleInGroup !== 'ADMIN') {
       const { inviteCode, ...rest } = group;
       return rest;
     }
@@ -176,7 +186,7 @@ export class GroupsService {
   // ========== Members (Nurse) ==========
 
   async getMembers(userId: string, groupId: string) {
-    await this.ensureOwner(userId, groupId);
+    await this.ensureAdminOrOwner(userId, groupId);
     const members = await this.prisma.groupMember.findMany({
       where: { groupId },
       include: {
@@ -201,7 +211,7 @@ export class GroupsService {
   }
 
   async removeMember(ownerId: string, groupId: string, memberId: string) {
-    await this.ensureOwner(ownerId, groupId);
+    await this.ensureAdminOrOwner(ownerId, groupId);
     // Don't remove the owner
     const membership = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId: memberId } },
@@ -219,7 +229,7 @@ export class GroupsService {
   // ========== Member detail views (Nurse) ==========
 
   async getMemberAlerts(ownerId: string, groupId: string, memberId: string) {
-    await this.ensureOwner(ownerId, groupId);
+    await this.ensureAdminOrOwner(ownerId, groupId);
     await this.ensureMemberInGroup(groupId, memberId);
 
     return this.prisma.alert.findMany({
@@ -236,7 +246,7 @@ export class GroupsService {
     from?: string,
     to?: string,
   ) {
-    await this.ensureOwner(ownerId, groupId);
+    await this.ensureAdminOrOwner(ownerId, groupId);
     await this.ensureMemberInGroup(groupId, memberId);
 
     const where = { userId: memberId };
@@ -276,7 +286,7 @@ export class GroupsService {
     groupId: string,
     memberId: string,
   ) {
-    await this.ensureOwner(ownerId, groupId);
+    await this.ensureAdminOrOwner(ownerId, groupId);
     await this.ensureMemberInGroup(groupId, memberId);
 
     const [bmSettings, medications] = await Promise.all([
@@ -298,7 +308,7 @@ export class GroupsService {
     memberId: string,
     dto: UpdateMemberStrategyDto,
   ) {
-    await this.ensureOwner(ownerId, groupId);
+    await this.ensureAdminOrOwner(ownerId, groupId);
     await this.ensureMemberInGroup(groupId, memberId);
 
     // Update BM settings
@@ -361,7 +371,7 @@ export class GroupsService {
     target: 'bm' | 'medication_schedule',
     scheduleId?: string,
   ) {
-    await this.ensureOwner(ownerId, groupId);
+    await this.ensureAdminOrOwner(ownerId, groupId);
     await this.ensureMemberInGroup(groupId, memberId);
 
     if (target === 'bm') {
@@ -406,7 +416,7 @@ export class GroupsService {
     month: number,
     tzOffsetMinutes = 480,
   ) {
-    await this.ensureOwner(ownerId, groupId);
+    await this.ensureAdminOrOwner(ownerId, groupId);
     await this.ensureMemberInGroup(groupId, memberId);
 
     const startDate = new Date(Date.UTC(year, month - 1, 1, -12, 0, 0, 0));
@@ -457,6 +467,15 @@ export class GroupsService {
     if (!membership) throw new NotFoundException('该用户不在此小组中');
   }
 
+  private async ensureAdminOrOwner(userId: string, groupId: string) {
+    const membership = await this.prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+    });
+    if (!membership || (membership.roleInGroup !== 'OWNER' && membership.roleInGroup !== 'ADMIN')) {
+      throw new ForbiddenException('仅小组管理员可执行此操作');
+    }
+  }
+
   private async generateInviteCode(): Promise<string> {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     const maxRetries = 5;
@@ -493,5 +512,106 @@ export class GroupsService {
     // Ultra-fallback: timestamp suffix
     const ts = Date.now().toString(36).toUpperCase();
     return ts.slice(-8).padStart(8, 'X');
+  }
+
+  async createMedicationForPatient(nurseId: string, groupId: string, patientId: string, dto: { name: string; dosage?: string }) {
+    const m = await this.prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: nurseId } } });
+    if (!m) throw new ForbiddenException('无权操作');
+    return this.prisma.medication.create({
+      data: { userId: patientId, name: dto.name, dosage: dto.dosage ?? null },
+    });
+  }
+
+  async joinAsStaff(userId: string, inviteCode: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('用户不存在');
+    if (user.role !== 'NURSE') throw new ForbiddenException('仅护理人员可申请');
+
+    const group = await this.prisma.group.findUnique({ where: { inviteCode } });
+    if (!group) throw new BadRequestException('邀请码无效');
+
+    const alreadyMember = await this.prisma.groupMember.findUnique({ where: { groupId_userId: { groupId: group.id, userId } } });
+    if (alreadyMember) throw new BadRequestException('已是该小组成员');
+
+    const existingReq = await this.prisma.adminRequest.findUnique({ where: { groupId_userId: { groupId: group.id, userId } } });
+    if (existingReq) {
+      if (existingReq.status === 'PENDING') throw new BadRequestException('已有待审批申请');
+      // APPROVED or REJECTED: allow re-apply — update existing record back to PENDING
+      return this.prisma.adminRequest.update({ where: { id: existingReq.id }, data: { status: 'PENDING' } });
+    }
+
+    return this.prisma.adminRequest.create({ data: { groupId: group.id, userId, status: 'PENDING' } });
+  }
+
+  async getAdminRequests(userId: string, groupId: string) {
+    await this.ensureAdminOrOwner(userId, groupId);
+    return this.prisma.adminRequest.findMany({ where: { groupId, status: 'PENDING' }, include: { user: { select: { id: true, displayName: true, username: true, email: true } } } });
+  }
+
+  async approveAdminRequest(userId: string, groupId: string, requestId: string) {
+    await this.ensureAdminOrOwner(userId, groupId);
+    const req = await this.prisma.adminRequest.findUnique({ where: { id: requestId } });
+    if (!req || req.status !== 'PENDING' || req.groupId !== groupId) throw new NotFoundException('申请不存在');
+
+    await this.prisma.adminRequest.update({ where: { id: requestId }, data: { status: 'APPROVED' } });
+    return this.prisma.groupMember.create({ data: { groupId, userId: req.userId, roleInGroup: 'ADMIN' } });
+  }
+
+  async rejectAdminRequest(userId: string, groupId: string, requestId: string) {
+    await this.ensureAdminOrOwner(userId, groupId);
+    return this.prisma.adminRequest.update({ where: { id: requestId }, data: { status: 'REJECTED' } });
+  }
+
+  // ========== 虚拟患者 ==========
+
+  async createVirtualPatient(nurseId: string, groupId: string, dto: { name: string; notes?: string }) {
+    const m = await this.prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: nurseId } } });
+    if (!m) throw new ForbiddenException('无权操作');
+
+    // Generate unique username for virtual patient
+    const vId = `virt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const virtualUser = await this.prisma.user.create({
+      data: {
+        username: vId,
+        email: `${vId}@virtual.local`,
+        passwordHash: '',
+        displayName: dto.name,
+        role: 'PATIENT',
+        isVirtual: true,
+      },
+    });
+
+    await this.prisma.groupMember.create({
+      data: { groupId, userId: virtualUser.id, roleInGroup: 'MEMBER' },
+    });
+
+    return virtualUser;
+  }
+
+  // ========== 护理端代打卡 ==========
+
+  async proxyBmRecord(nurseId: string, groupId: string, patientId: string, dto: { notes?: string; recordedAt?: string }) {
+    const m = await this.prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: nurseId } } });
+    if (!m) throw new ForbiddenException('无权操作');
+    return this.prisma.bmRecord.create({
+      data: {
+        userId: patientId,
+        recordedAt: dto.recordedAt ? new Date(dto.recordedAt) : new Date(),
+        notes: dto.notes ?? null,
+      },
+    });
+  }
+
+  async proxyMedicationRecord(nurseId: string, groupId: string, patientId: string, dto: { medicationId: string; notes?: string }) {
+    const m = await this.prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: nurseId } } });
+    if (!m) throw new ForbiddenException('无权操作');
+    return this.prisma.medicationRecord.create({
+      data: {
+        medicationId: dto.medicationId,
+        userId: patientId,
+        takenAt: new Date(),
+        ...(dto.notes ? { notes: dto.notes } : {}),
+      },
+    });
   }
 }

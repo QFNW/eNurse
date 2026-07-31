@@ -13,7 +13,8 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val success: Boolean = false,
-    val userRole: String? = null
+    val userRole: String? = null,
+    val codeSent: Boolean = false
 )
 
 @HiltViewModel
@@ -37,10 +38,23 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun register(username: String, displayName: String, email: String, password: String, role: String) {
+    fun sendCode(email: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true, error = null)
+            authRepository.sendCode(email)
+                .onSuccess { msg ->
+                    _state.value = _state.value.copy(isLoading = false, codeSent = true, error = null)
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(isLoading = false, error = e.message ?: "发送验证码失败")
+                }
+        }
+    }
+
+    fun register(username: String, displayName: String, email: String, password: String, role: String, code: String) {
         viewModelScope.launch {
             _state.value = AuthUiState(isLoading = true)
-            authRepository.register(username, displayName, email, password, role)
+            authRepository.register(username, displayName, email, password, role, code)
                 .onSuccess { res ->
                     _state.value = AuthUiState(success = true, userRole = res.user.role)
                 }

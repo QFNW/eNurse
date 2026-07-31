@@ -46,6 +46,31 @@ let CacheService = class CacheService {
             return false;
         }
     }
+    async setCode(email, code, ttlSeconds) {
+        try {
+            await this.redis.set(`email_code:${email}`, code, 'EX', ttlSeconds);
+        }
+        catch (err) {
+            console.error(`Redis setCode failed: ${err.message}`);
+        }
+    }
+    async getCode(email) {
+        try {
+            return await this.redis.get(`email_code:${email}`);
+        }
+        catch (err) {
+            console.error(`Redis getCode failed: ${err.message}`);
+            return null;
+        }
+    }
+    async deleteCode(email) {
+        try {
+            await this.redis.del(`email_code:${email}`);
+        }
+        catch (err) {
+            console.error(`Redis deleteCode failed: ${err.message}`);
+        }
+    }
     async onModuleDestroy() {
         await this.redis.quit();
     }

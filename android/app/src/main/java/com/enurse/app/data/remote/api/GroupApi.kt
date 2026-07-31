@@ -41,4 +41,50 @@ interface GroupApi {
         @Path("userId") userId: String,
         @Body body: Map<String, String>
     ): Any
+
+    @POST("groups/{id}/members/{userId}/proxy-bm")
+    suspend fun proxyBm(
+        @Path("id") id: String,
+        @Path("userId") userId: String,
+        @Body body: Map<String, String>
+    ): Any
+
+    @POST("groups/{id}/members/{userId}/proxy-medication")
+    suspend fun proxyMedication(
+        @Path("id") id: String,
+        @Path("userId") userId: String,
+        @Body body: Map<String, String>
+    ): Any
+
+    @POST("groups/{id}/virtual-patients")
+    suspend fun createVirtualPatient(
+        @Path("id") id: String,
+        @Body body: Map<String, String>
+    ): Any
+
+    @POST("groups/{id}/members/{userId}/medications")
+    suspend fun createMedicationForPatient(
+        @Path("id") id: String,
+        @Path("userId") userId: String,
+        @Body body: Map<String, String>
+    ): Any
+
+    @PUT("groups/{id}/members/{userId}/strategies")
+    suspend fun updateMemberStrategies(
+        @Path("id") id: String,
+        @Path("userId") userId: String,
+        @Body body: Map<String, String>
+    ): Any
+
+    @POST("groups/join-staff")
+    suspend fun joinAsStaff(@Body body: Map<String, String>): Any
+
+    @GET("groups/{id}/admin-requests")
+    suspend fun getAdminRequests(@Path("id") id: String): List<Any>
+
+    @PUT("groups/{id}/admin-requests/{requestId}/approve")
+    suspend fun approveAdminRequest(@Path("id") id: String, @Path("requestId") requestId: String): Any
+
+    @DELETE("groups/{id}/admin-requests/{requestId}")
+    suspend fun rejectAdminRequest(@Path("id") id: String, @Path("requestId") requestId: String)
 }

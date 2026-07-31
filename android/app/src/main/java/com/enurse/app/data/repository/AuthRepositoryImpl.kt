@@ -13,9 +13,15 @@ class AuthRepositoryImpl @Inject constructor(
     private val tokenDataStore: TokenDataStore
 ) : AuthRepository {
 
-    override suspend fun register(username: String, displayName: String, email: String, password: String, role: String): Result<AuthResponse> =
+    override suspend fun sendCode(email: String): Result<String> =
         runCatching {
-            val res = authApi.register(RegisterRequest(username, displayName, email, password, role))
+            val res = authApi.sendCode(mapOf("email" to email))
+            res["message"] ?: "验证码已发送"
+        }
+
+    override suspend fun register(username: String, displayName: String, email: String, password: String, role: String, code: String): Result<AuthResponse> =
+        runCatching {
+            val res = authApi.register(RegisterRequest(username, displayName, email, password, role, code))
             tokenDataStore.saveTokens(res.accessToken, res.refreshToken)
             tokenDataStore.saveUserInfo(res.user.id, res.user.role)
             res

@@ -72,6 +72,30 @@ let GroupsController = class GroupsController {
     getMemberCalendar(user, id, memberId, year, month) {
         return this.groupsService.getMemberCalendar(user.sub, id, memberId, parseInt(year, 10) || new Date().getFullYear(), parseInt(month, 10) || (new Date().getMonth() + 1));
     }
+    createMedicationForPatient(user, id, memberId, dto) {
+        return this.groupsService.createMedicationForPatient(user.sub, id, memberId, dto);
+    }
+    joinAsStaff(user, dto) {
+        return this.groupsService.joinAsStaff(user.sub, dto.inviteCode);
+    }
+    getAdminRequests(user, id) {
+        return this.groupsService.getAdminRequests(user.sub, id);
+    }
+    approveAdminRequest(user, id, requestId) {
+        return this.groupsService.approveAdminRequest(user.sub, id, requestId);
+    }
+    rejectAdminRequest(user, id, requestId) {
+        return this.groupsService.rejectAdminRequest(user.sub, id, requestId);
+    }
+    createVirtualPatient(user, id, dto) {
+        return this.groupsService.createVirtualPatient(user.sub, id, dto);
+    }
+    proxyBmRecord(user, id, memberId, dto) {
+        return this.groupsService.proxyBmRecord(user.sub, id, memberId, dto);
+    }
+    proxyMedicationRecord(user, id, memberId, dto) {
+        return this.groupsService.proxyMedicationRecord(user.sub, id, memberId, dto);
+    }
 };
 exports.GroupsController = GroupsController;
 __decorate([
@@ -229,6 +253,87 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], GroupsController.prototype, "getMemberCalendar", null);
+__decorate([
+    (0, common_1.Post)(':id/members/:userId/medications'),
+    (0, roles_decorator_1.Roles)(client_1.Role.NURSE),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('userId')),
+    __param(3, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, Object]),
+    __metadata("design:returntype", void 0)
+], GroupsController.prototype, "createMedicationForPatient", null);
+__decorate([
+    (0, common_1.Post)('join-staff'),
+    (0, roles_decorator_1.Roles)(client_1.Role.NURSE),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], GroupsController.prototype, "joinAsStaff", null);
+__decorate([
+    (0, common_1.Get)(':id/admin-requests'),
+    (0, roles_decorator_1.Roles)(client_1.Role.NURSE),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], GroupsController.prototype, "getAdminRequests", null);
+__decorate([
+    (0, common_1.Put)(':id/admin-requests/:requestId/approve'),
+    (0, roles_decorator_1.Roles)(client_1.Role.NURSE),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('requestId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], GroupsController.prototype, "approveAdminRequest", null);
+__decorate([
+    (0, common_1.Delete)(':id/admin-requests/:requestId'),
+    (0, roles_decorator_1.Roles)(client_1.Role.NURSE),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('requestId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], GroupsController.prototype, "rejectAdminRequest", null);
+__decorate([
+    (0, common_1.Post)(':id/virtual-patients'),
+    (0, roles_decorator_1.Roles)(client_1.Role.NURSE),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], GroupsController.prototype, "createVirtualPatient", null);
+__decorate([
+    (0, common_1.Post)(':id/members/:userId/proxy-bm'),
+    (0, roles_decorator_1.Roles)(client_1.Role.NURSE),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('userId')),
+    __param(3, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, Object]),
+    __metadata("design:returntype", void 0)
+], GroupsController.prototype, "proxyBmRecord", null);
+__decorate([
+    (0, common_1.Post)(':id/members/:userId/proxy-medication'),
+    (0, roles_decorator_1.Roles)(client_1.Role.NURSE),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('userId')),
+    __param(3, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, Object]),
+    __metadata("design:returntype", void 0)
+], GroupsController.prototype, "proxyMedicationRecord", null);
 exports.GroupsController = GroupsController = __decorate([
     (0, common_1.Controller)('api/v1/groups'),
     __metadata("design:paramtypes", [groups_service_1.GroupsService])

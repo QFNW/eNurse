@@ -95,6 +95,100 @@ class NurseViewModel @Inject constructor(
         }
     }
 
+    fun removeMember(groupId: String, userId: String) {
+        viewModelScope.launch {
+            groupRepository.removeMember(groupId, userId)
+                .onSuccess { loadGroupDetail(groupId) }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun proxyBm(groupId: String, userId: String, notes: String? = null) {
+        viewModelScope.launch {
+            groupRepository.proxyBm(groupId, userId, notes)
+                .onSuccess {
+                    _state.value = _state.value.copy(error = "✓ 大便代打卡成功")
+                    loadMemberEvents(groupId, userId)
+                }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun createVirtualPatient(groupId: String, name: String) {
+        viewModelScope.launch {
+            groupRepository.createVirtualPatient(groupId, name)
+                .onSuccess {
+                    loadGroupDetail(groupId)
+                    _state.value = _state.value.copy(error = "✓ 虚拟患者已创建")
+                }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun proxyMedication(groupId: String, userId: String, medicationId: String, notes: String? = null) {
+        viewModelScope.launch {
+            groupRepository.proxyMedication(groupId, userId, medicationId, notes)
+                .onSuccess {
+                    _state.value = _state.value.copy(error = "✓ 用药代打卡成功")
+                    loadMemberEvents(groupId, userId)
+                }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun createMedicationForPatient(groupId: String, userId: String, name: String, dosage: String?) {
+        viewModelScope.launch {
+            groupRepository.createMedicationForPatient(groupId, userId, name, dosage)
+                .onSuccess {
+                    _state.value = _state.value.copy(error = "✓ 药品已创建")
+                    loadMemberStrategies(groupId, userId)
+                }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun joinAsStaff(inviteCode: String) {
+        viewModelScope.launch {
+            groupRepository.joinAsStaff(inviteCode)
+                .onSuccess { _state.value = _state.value.copy(error = "✓ 申请已提交，等待组长审批") }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun approveRequest(groupId: String, requestId: String) {
+        viewModelScope.launch {
+            groupRepository.approveAdminRequest(groupId, requestId)
+                .onSuccess { loadGroupDetail(groupId); loadAdminRequests(groupId) }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun rejectRequest(groupId: String, requestId: String) {
+        viewModelScope.launch {
+            groupRepository.rejectAdminRequest(groupId, requestId)
+                .onSuccess { loadAdminRequests(groupId) }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun loadAdminRequests(groupId: String) {
+        viewModelScope.launch {
+            groupRepository.getAdminRequests(groupId)
+                .onSuccess { _state.value = _state.value.copy(memberEvents = mapOf("adminRequests" to it)) }
+        }
+    }
+
+    fun updateMemberStrategies(groupId: String, userId: String, bmSettings: Map<String, String>) {
+        viewModelScope.launch {
+            groupRepository.updateMemberStrategies(groupId, userId, bmSettings)
+                .onSuccess {
+                    _state.value = _state.value.copy(error = "✓ 策略已更新")
+                    loadMemberStrategies(groupId, userId)
+                }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
     fun toggleLock(groupId: String, userId: String, target: String, scheduleId: String? = null) {
         viewModelScope.launch {
             groupRepository.toggleLock(groupId, userId, target, scheduleId)

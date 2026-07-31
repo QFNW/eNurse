@@ -2,12 +2,14 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { EmailService } from './email.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { randomUUID } from 'crypto';
@@ -19,9 +21,23 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private cacheService: CacheService,
+    private emailService: EmailService,
   ) {}
 
+  async sendCode(email: string) {
+    // Check if email is already registered
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) throw new ConflictException('该邮箱已被注册');
+
+    await this.emailService.sendVerificationCode(email);
+    return { message: '验证码已发送，5分钟内有效' };
+  }
+
   async register(dto: RegisterDto) {
+    // Verify code
+    const codeValid = await this.emailService.consumeCode(dto.email, dto.code);
+    if (!codeValid) throw new BadRequestException('验证码错误或已过期');
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     let user;
     try {

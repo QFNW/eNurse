@@ -197,4 +197,89 @@ export class GroupsController {
       parseInt(month, 10) || (new Date().getMonth() + 1),
     );
   }
+
+  @Post(':id/members/:userId/medications')
+  @Roles(Role.NURSE)
+  createMedicationForPatient(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('userId') memberId: string,
+    @Body() dto: { name: string; dosage?: string },
+  ) {
+    return this.groupsService.createMedicationForPatient(user.sub, id, memberId, dto);
+  }
+
+  @Post('join-staff')
+  @Roles(Role.NURSE)
+  joinAsStaff(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: { inviteCode: string },
+  ) {
+    return this.groupsService.joinAsStaff(user.sub, dto.inviteCode);
+  }
+
+  @Get(':id/admin-requests')
+  @Roles(Role.NURSE)
+  getAdminRequests(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+  ) {
+    return this.groupsService.getAdminRequests(user.sub, id);
+  }
+
+  @Put(':id/admin-requests/:requestId/approve')
+  @Roles(Role.NURSE)
+  approveAdminRequest(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.groupsService.approveAdminRequest(user.sub, id, requestId);
+  }
+
+  @Delete(':id/admin-requests/:requestId')
+  @Roles(Role.NURSE)
+  rejectAdminRequest(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.groupsService.rejectAdminRequest(user.sub, id, requestId);
+  }
+
+  // ========== 虚拟患者 ==========
+
+  @Post(':id/virtual-patients')
+  @Roles(Role.NURSE)
+  createVirtualPatient(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: { name: string; notes?: string },
+  ) {
+    return this.groupsService.createVirtualPatient(user.sub, id, dto);
+  }
+
+  // ========== 护理端代打卡 ==========
+
+  @Post(':id/members/:userId/proxy-bm')
+  @Roles(Role.NURSE)
+  proxyBmRecord(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('userId') memberId: string,
+    @Body() dto: { notes?: string; recordedAt?: string },
+  ) {
+    return this.groupsService.proxyBmRecord(user.sub, id, memberId, dto);
+  }
+
+  @Post(':id/members/:userId/proxy-medication')
+  @Roles(Role.NURSE)
+  proxyMedicationRecord(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('userId') memberId: string,
+    @Body() dto: { medicationId: string; notes?: string },
+  ) {
+    return this.groupsService.proxyMedicationRecord(user.sub, id, memberId, dto);
+  }
 }

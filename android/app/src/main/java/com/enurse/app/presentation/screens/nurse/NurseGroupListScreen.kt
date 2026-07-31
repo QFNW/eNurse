@@ -24,9 +24,26 @@ fun NurseGroupListScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var showCreate by remember { mutableStateOf(false) }
+    var showJoinStaff by remember { mutableStateOf(false) }
+    var staffInviteCode by remember { mutableStateOf("") }
+    var joinError by remember { mutableStateOf<String?>(null) }
     var groupName by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) { viewModel.loadGroups() }
+
+    // Watch join-as-staff result: close dialog on success, show error on failure
+    LaunchedEffect(state.error) {
+        val err = state.error
+        if (err != null && showJoinStaff) {
+            if (err.startsWith("✓")) {
+                showJoinStaff = false
+                staffInviteCode = ""
+                joinError = null
+            } else {
+                joinError = err
+            }
+        }
+    }
 
     Scaffold(
         containerColor = Background,
@@ -34,6 +51,7 @@ fun NurseGroupListScreen(
             TopAppBar(
                 title = { Text("我的小组", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = { TextButton(onClick = onGoBack) { Text("← 返回", color = Primary) } },
+                actions = { TextButton(onClick = { showJoinStaff = true }) { Text("加入小组", color = Primary, fontSize = 14.sp) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
             )
         },
@@ -122,6 +140,36 @@ fun NurseGroupListScreen(
                 }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = Primary)) { Text("创建") }
             },
             dismissButton = { TextButton(onClick = { showCreate = false }) { Text("取消") } }
+        )
+    }
+
+    // Join as staff dialog
+    if (showJoinStaff) {
+        AlertDialog(
+            onDismissRequest = { showJoinStaff = false; joinError = null },
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("加入小组为管理员") },
+            text = {
+                Column {
+                    OutlinedTextField(value = staffInviteCode, onValueChange = { staffInviteCode = it; joinError = null },
+                        label = { Text("邀请码") }, modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary))
+                    if (joinError != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(joinError!!, color = AlertRed, fontSize = 13.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (staffInviteCode.isNotBlank()) {
+                        joinError = null
+                        viewModel.joinAsStaff(staffInviteCode)
+                    }
+                }, shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = Primary)) { Text("加入") }
+            },
+            dismissButton = { TextButton(onClick = { showJoinStaff = false; joinError = null }) { Text("取消") } }
         )
     }
 }

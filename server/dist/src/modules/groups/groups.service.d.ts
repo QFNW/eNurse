@@ -61,7 +61,9 @@ export declare class GroupsService {
         members: ({
             user: {
                 id: string;
+                username: string;
                 email: string;
+                displayName: string;
                 nickname: string | null;
                 role: Role;
             };
@@ -280,5 +282,91 @@ export declare class GroupsService {
     }>;
     private ensureOwner;
     private ensureMemberInGroup;
+    private ensureAdminOrOwner;
     private generateInviteCode;
+    createMedicationForPatient(nurseId: string, groupId: string, patientId: string, dto: {
+        name: string;
+        dosage?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+        userId: string;
+        notes: string | null;
+        dosage: string | null;
+        unit: string | null;
+        isActive: boolean;
+    }>;
+    joinAsStaff(userId: string, inviteCode: string): Promise<{
+        id: string;
+        createdAt: Date;
+        groupId: string;
+        userId: string;
+        status: string;
+    }>;
+    getAdminRequests(userId: string, groupId: string): Promise<({
+        user: {
+            id: string;
+            username: string;
+            email: string;
+            displayName: string;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        groupId: string;
+        userId: string;
+        status: string;
+    })[]>;
+    approveAdminRequest(userId: string, groupId: string, requestId: string): Promise<{
+        id: string;
+        groupId: string;
+        userId: string;
+        roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
+        joinedAt: Date;
+    }>;
+    rejectAdminRequest(userId: string, groupId: string, requestId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        groupId: string;
+        userId: string;
+        status: string;
+    }>;
+    createVirtualPatient(nurseId: string, groupId: string, dto: {
+        name: string;
+        notes?: string;
+    }): Promise<{
+        id: string;
+        username: string;
+        email: string;
+        passwordHash: string;
+        displayName: string;
+        nickname: string | null;
+        role: Role;
+        isVirtual: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    proxyBmRecord(nurseId: string, groupId: string, patientId: string, dto: {
+        notes?: string;
+        recordedAt?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        recordedAt: Date;
+        notes: string | null;
+    }>;
+    proxyMedicationRecord(nurseId: string, groupId: string, patientId: string, dto: {
+        medicationId: string;
+        notes?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        notes: string | null;
+        medicationId: string;
+        takenAt: Date;
+    }>;
 }

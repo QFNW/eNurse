@@ -23,6 +23,7 @@ model User {
   displayName   String
   nickname      String?
   role          Role      @default(PATIENT)
+  isVirtual     Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -33,6 +34,7 @@ model User {
   alerts              Alert[]
   groupMemberships    GroupMember[]
   createdGroups       Group[]              @relation("GroupCreator")
+  adminRequests       AdminRequest[]
 
   @@map("users")
 }
@@ -41,6 +43,7 @@ model User {
 
 enum GroupMemberRole {
   OWNER
+  ADMIN
   MEMBER
 }
 
@@ -54,6 +57,7 @@ model Group {
 
   creator     User      @relation("GroupCreator", fields: [createdBy], references: [id])
   members     GroupMember[]
+  adminRequests AdminRequest[]
 
   @@index([inviteCode])
   @@map("groups")
@@ -72,6 +76,20 @@ model GroupMember {
   @@unique([groupId, userId])
   @@index([userId])
   @@map("group_members")
+}
+
+model AdminRequest {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime @default(now())
+
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("admin_requests")
 }
 
 // ========== 大便系统 ==========

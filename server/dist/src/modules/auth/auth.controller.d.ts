@@ -4,6 +4,9 @@ import { LoginDto, RefreshDto } from './dto/login.dto';
 export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
+    sendCode(email: string): Promise<{
+        message: string;
+    }>;
     register(dto: RegisterDto): Promise<{
         user: {
             id: string;

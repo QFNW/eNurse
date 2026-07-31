@@ -29,5 +29,11 @@ exports.default = () => ({
     admin: {
         passwordHash: process.env.ADMIN_PASSWORD_HASH || '',
     },
+    smtp: {
+        host: process.env.SMTP_HOST || 'smtp.qq.com',
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASS || '',
+    },
 });
 //# sourceMappingURL=configuration.js.map

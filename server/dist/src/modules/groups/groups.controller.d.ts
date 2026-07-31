@@ -62,7 +62,9 @@ export declare class GroupsController {
         members: ({
             user: {
                 id: string;
+                username: string;
                 email: string;
+                displayName: string;
                 nickname: string | null;
                 role: Role;
             };
@@ -278,5 +280,92 @@ export declare class GroupsController {
                 notes: string | null;
             }[];
         }[];
+    }>;
+    createMedicationForPatient(user: JwtPayload, id: string, memberId: string, dto: {
+        name: string;
+        dosage?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+        userId: string;
+        notes: string | null;
+        dosage: string | null;
+        unit: string | null;
+        isActive: boolean;
+    }>;
+    joinAsStaff(user: JwtPayload, dto: {
+        inviteCode: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        groupId: string;
+        userId: string;
+        status: string;
+    }>;
+    getAdminRequests(user: JwtPayload, id: string): Promise<({
+        user: {
+            id: string;
+            username: string;
+            email: string;
+            displayName: string;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        groupId: string;
+        userId: string;
+        status: string;
+    })[]>;
+    approveAdminRequest(user: JwtPayload, id: string, requestId: string): Promise<{
+        id: string;
+        groupId: string;
+        userId: string;
+        roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
+        joinedAt: Date;
+    }>;
+    rejectAdminRequest(user: JwtPayload, id: string, requestId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        groupId: string;
+        userId: string;
+        status: string;
+    }>;
+    createVirtualPatient(user: JwtPayload, id: string, dto: {
+        name: string;
+        notes?: string;
+    }): Promise<{
+        id: string;
+        username: string;
+        email: string;
+        passwordHash: string;
+        displayName: string;
+        nickname: string | null;
+        role: Role;
+        isVirtual: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    proxyBmRecord(user: JwtPayload, id: string, memberId: string, dto: {
+        notes?: string;
+        recordedAt?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        recordedAt: Date;
+        notes: string | null;
+    }>;
+    proxyMedicationRecord(user: JwtPayload, id: string, memberId: string, dto: {
+        medicationId: string;
+        notes?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        notes: string | null;
+        medicationId: string;
+        takenAt: Date;
     }>;
 }

@@ -9,6 +9,12 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Post('send-code')
+  async sendCode(@Body('email') email: string) {
+    return this.authService.sendCode(email);
+  }
+
+  @Public()
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);

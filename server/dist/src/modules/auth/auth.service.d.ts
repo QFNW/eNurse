@@ -2,6 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { EmailService } from './email.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 export declare class AuthService {
@@ -9,7 +10,11 @@ export declare class AuthService {
     private jwtService;
     private configService;
     private cacheService;
-    constructor(prisma: PrismaService, jwtService: JwtService, configService: ConfigService, cacheService: CacheService);
+    private emailService;
+    constructor(prisma: PrismaService, jwtService: JwtService, configService: ConfigService, cacheService: CacheService, emailService: EmailService);
+    sendCode(email: string): Promise<{
+        message: string;
+    }>;
     register(dto: RegisterDto): Promise<{
         user: {
             id: string;

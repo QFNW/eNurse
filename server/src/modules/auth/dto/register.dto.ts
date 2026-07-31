@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, MaxLength, IsEnum, Matches } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, IsEnum, Matches, Length } from 'class-validator';
 import { Role } from '../../../../generated/prisma/client';
 
 export class RegisterDto {
@@ -19,4 +19,8 @@ export class RegisterDto {
 
   @IsEnum(Role)
   role: Role;
+
+  @IsString({ message: '验证码格式错误' })
+  @Length(6, 6, { message: '验证码须为6位数字' })
+  code: string;
 }

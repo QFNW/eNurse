@@ -18,6 +18,7 @@ class RegisterDto {
     email;
     password;
     role;
+    code;
 }
 exports.RegisterDto = RegisterDto;
 __decorate([
@@ -43,4 +44,9 @@ __decorate([
     (0, class_validator_1.IsEnum)(client_1.Role),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "role", void 0);
+__decorate([
+    (0, class_validator_1.IsString)({ message: '验证码格式错误' }),
+    (0, class_validator_1.Length)(6, 6, { message: '验证码须为6位数字' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "code", void 0);
 //# sourceMappingURL=register.dto.js.map

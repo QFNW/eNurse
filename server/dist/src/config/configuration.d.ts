@@ -13,5 +13,11 @@ declare const _default: () => {
     admin: {
         passwordHash: string;
     };
+    smtp: {
+        host: string;
+        port: number;
+        user: string;
+        pass: string;
+    };
 };
 export default _default;

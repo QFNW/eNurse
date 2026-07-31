@@ -40,4 +40,43 @@ class GroupRepositoryImpl @Inject constructor(
             scheduleId?.let { body["scheduleId"] = it }
             groupApi.toggleLock(groupId, userId, body)
         }
+
+    override suspend fun proxyBm(groupId: String, userId: String, notes: String?): Result<Any> =
+        runCatching {
+            val b = mutableMapOf<String, String>()
+            if (notes != null) b["notes"] = notes
+            groupApi.proxyBm(groupId, userId, b)
+        }
+
+    override suspend fun proxyMedication(groupId: String, userId: String, medicationId: String, notes: String?): Result<Any> =
+        runCatching {
+            val b = mutableMapOf("medicationId" to medicationId)
+            if (notes != null) b["notes"] = notes
+            groupApi.proxyMedication(groupId, userId, b)
+        }
+
+    override suspend fun createVirtualPatient(groupId: String, name: String): Result<Any> =
+        runCatching { groupApi.createVirtualPatient(groupId, mapOf("name" to name)) }
+
+    override suspend fun createMedicationForPatient(groupId: String, userId: String, name: String, dosage: String?): Result<Any> =
+        runCatching {
+            val b = mutableMapOf("name" to name)
+            if (dosage != null) b["dosage"] = dosage
+            groupApi.createMedicationForPatient(groupId, userId, b)
+        }
+
+    override suspend fun updateMemberStrategies(groupId: String, userId: String, params: Map<String, String>): Result<Any> =
+        runCatching { groupApi.updateMemberStrategies(groupId, userId, params) }
+
+    override suspend fun joinAsStaff(inviteCode: String): Result<Any> =
+        runCatching { groupApi.joinAsStaff(mapOf("inviteCode" to inviteCode)) }
+
+    override suspend fun getAdminRequests(groupId: String): Result<List<Any>> =
+        runCatching { groupApi.getAdminRequests(groupId) }
+
+    override suspend fun approveAdminRequest(groupId: String, requestId: String): Result<Any> =
+        runCatching { groupApi.approveAdminRequest(groupId, requestId) }
+
+    override suspend fun rejectAdminRequest(groupId: String, requestId: String): Result<Any> =
+        runCatching { groupApi.rejectAdminRequest(groupId, requestId) }
 }
