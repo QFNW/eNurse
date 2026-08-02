@@ -19,5 +19,8 @@ export declare class UsersController {
         nickname: string | null;
         role: import("../../../generated/prisma/enums").Role;
     }>;
+    deleteAccount(user: JwtPayload): Promise<{
+        message: string;
+    }>;
 }
 export {};

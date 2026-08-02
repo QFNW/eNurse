@@ -83,6 +83,10 @@ export class AuthService {
       throw new UnauthorizedException('用户名或密码错误');
     }
 
+    if (user.isDisabled) {
+      throw new UnauthorizedException('该账号已被禁用，请联系管理员');
+    }
+
     const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);
     return {
       ...tokens,
@@ -106,6 +110,9 @@ export class AuthService {
       });
       if (!user) {
         throw new UnauthorizedException('用户不存在');
+      }
+      if (user.isDisabled) {
+        throw new UnauthorizedException('该账号已被禁用，请联系管理员');
       }
 
       const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);

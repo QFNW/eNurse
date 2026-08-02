@@ -1,5 +1,7 @@
 import { AdminService } from './admin.service';
 import { Role } from '../../../generated/prisma/client';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 export declare class AdminController {
     private readonly adminService;
     constructor(adminService: AdminService);
@@ -14,6 +16,7 @@ export declare class AdminController {
             email: string;
             nickname: string | null;
             role: Role;
+            isDisabled: boolean;
             createdAt: Date;
             _count: {
                 bmRecords: number;
@@ -32,10 +35,75 @@ export declare class AdminController {
         nickname: string | null;
         role: Role;
     }>;
-    disableUser(userId: string): Promise<{
+    getUserDetail(userId: string): Promise<{
+        groups: {
+            id: string;
+            name: string;
+            roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
+            joinedAt: Date;
+            memberCount: number;
+        }[];
+        bmRecords: {
+            id: string;
+            createdAt: Date;
+            userId: string;
+            recordedAt: Date;
+            notes: string | null;
+        }[];
+        medicationRecords: ({
+            medication: {
+                id: string;
+                name: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            userId: string;
+            notes: string | null;
+            medicationId: string;
+            takenAt: Date;
+        })[];
+        medications: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
+            userId: string;
+            notes: string | null;
+            dosage: string | null;
+            unit: string | null;
+            isActive: boolean;
+        }[];
+        counts: {
+            bmRecords: number;
+            medicationRecords: number;
+            groupMemberships: number;
+        };
+        id: string;
+        username: string;
+        email: string;
+        displayName: string;
+        nickname: string | null;
+        role: Role;
+        isVirtual: boolean;
+        isDisabled: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        _count: {
+            bmRecords: number;
+            medicationRecords: number;
+            groupMemberships: number;
+        };
+    }>;
+    setUserStatus(userId: string, body: UpdateUserStatusDto, requesterId?: string): Promise<{
         id: string;
         email: string;
+        nickname: string | null;
         role: Role;
+        isDisabled: boolean;
+    }>;
+    resetPassword(userId: string, body: ResetPasswordDto): Promise<{
+        message: string;
     }>;
     getGroups(page?: string, pageSize?: string): Promise<{
         groups: ({

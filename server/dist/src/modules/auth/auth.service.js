@@ -115,6 +115,9 @@ let AuthService = class AuthService {
         if (!valid) {
             throw new common_1.UnauthorizedException('用户名或密码错误');
         }
+        if (user.isDisabled) {
+            throw new common_1.UnauthorizedException('该账号已被禁用，请联系管理员');
+        }
         const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);
         return {
             ...tokens,
@@ -134,6 +137,9 @@ let AuthService = class AuthService {
             });
             if (!user) {
                 throw new common_1.UnauthorizedException('用户不存在');
+            }
+            if (user.isDisabled) {
+                throw new common_1.UnauthorizedException('该账号已被禁用，请联系管理员');
             }
             const tokens = await this.generateTokens(user.id, user.username, user.email, user.role);
             if (payload.tokenId) {

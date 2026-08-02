@@ -22,6 +22,12 @@ export default function AdminLayout() {
     navigate('/admin/login');
   };
 
+  // Longest-prefix match so sub-routes like /admin/users/:id keep the menu highlighted
+  // (must check longer keys first, otherwise every path matches the bare /admin)
+  const selectedKey = [...menuItems]
+    .sort((a, b) => b.key.length - a.key.length)
+    .find((i) => location.pathname.startsWith(i.key))?.key;
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} theme="dark">
@@ -31,7 +37,7 @@ export default function AdminLayout() {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[location.pathname]}
+          selectedKeys={selectedKey ? [selectedKey] : []}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />

@@ -64,6 +64,15 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true)
+            authRepository.deleteAccount()
+                .onSuccess { _state.value = AuthUiState(success = true, userRole = null) }
+                .onFailure { e -> _state.value = _state.value.copy(isLoading = false, error = e.message ?: "注销失败") }
+        }
+    }
+
     fun logout() {
         viewModelScope.launch { authRepository.logout() }
     }

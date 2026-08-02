@@ -73,12 +73,12 @@ fun MemberDetailScreen(
 
             if (showProxy) {
                 Column(Modifier.padding(horizontal = 20.dp)) {
-                    OutlinedButton(onClick = { viewModel.proxyBm(groupId, userId, proxyNotes.ifBlank { null }); proxyNotes = "" },
+                    OutlinedButton(onClick = { viewModel.proxyBm(groupId, userId, proxyNotes.ifBlank { null }) },
                         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("💩 代大便打卡") }
                     Spacer(Modifier.height(6.dp))
                     proxyMeds.forEach { med ->
                         val m = med as? Map<*, *> ?: return@forEach
-                        OutlinedButton(onClick = { viewModel.proxyMedication(groupId, userId, m["id"]?.toString() ?: "", proxyNotes.ifBlank { null }); proxyNotes = "" },
+                        OutlinedButton(onClick = { viewModel.proxyMedication(groupId, userId, m["id"]?.toString() ?: "", proxyNotes.ifBlank { null }) },
                             modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("💊 代${m["name"]?.toString() ?: ""} 打卡") }
                         Spacer(Modifier.height(4.dp))
                     }
@@ -137,6 +137,7 @@ private fun MemberEventsTab(events: Map<String, List<Any>>?) {
                     Column(Modifier.padding(14.dp)) {
                         Text("药品: ${map?.get("medication")?.let { (it as? Map<*,*>)?.get("name") } ?: "-"}", fontSize = 14.sp)
                         Text("时间: ${map?.get("takenAt")?.toString()?.take(16)?.replace("T", " ") ?: "-"}", fontSize = 13.sp, color = TextSecondary)
+                        map?.get("notes")?.toString()?.takeIf { it != "null" }?.let { Text("备注: $it", fontSize = 13.sp, color = TextSecondary) }
                     }
                 }
             }

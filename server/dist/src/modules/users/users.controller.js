@@ -36,6 +36,9 @@ let UsersController = class UsersController {
     async updateProfile(user, body) {
         return this.usersService.update(user.sub, body);
     }
+    async deleteAccount(user) {
+        return this.usersService.delete(user.sub);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -53,6 +56,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, UpdateProfileDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "updateProfile", null);
+__decorate([
+    (0, common_1.Delete)('me'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "deleteAccount", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('api/v1/users'),
     __metadata("design:paramtypes", [users_service_1.UsersService])

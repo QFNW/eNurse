@@ -2,8 +2,8 @@
 cd /d "%~dp0server"
 
 echo Stopping old processes...
-taskkill /F /IM node.exe >nul 2>&1
-timeout /t 2 /nobreak >nul
+taskkill /F /IM node.exe >nul 2>nul
+ping -n 3 127.0.0.1 >nul
 
 echo Building...
 call npx prisma generate
@@ -20,8 +20,8 @@ if %errorlevel% neq 0 (
 )
 
 echo Starting server...
-start /B node dist/src/main.js
-timeout /t 3 /nobreak >nul
+start "eNurse" /MIN node dist/src/main.js
+ping -n 5 127.0.0.1 >nul
 
 echo.
 echo Server running at http://localhost:3000

@@ -2,6 +2,7 @@ package com.enurse.app.data.repository
 
 import com.enurse.app.data.local.datastore.TokenDataStore
 import com.enurse.app.data.remote.api.AuthApi
+import com.enurse.app.data.remote.api.UserApi
 import com.enurse.app.data.remote.dto.request.LoginRequest
 import com.enurse.app.data.remote.dto.request.RegisterRequest
 import com.enurse.app.data.remote.dto.response.AuthResponse
@@ -10,6 +11,7 @@ import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
+    private val userApi: UserApi,
     private val tokenDataStore: TokenDataStore
 ) : AuthRepository {
 
@@ -40,6 +42,13 @@ class AuthRepositoryImpl @Inject constructor(
             val res = authApi.refresh(mapOf("refreshToken" to refresh))
             tokenDataStore.saveTokens(res.accessToken, res.refreshToken)
             res
+        }
+
+    override suspend fun deleteAccount(): Result<String> =
+        runCatching {
+            val res = userApi.deleteAccount()
+            tokenDataStore.clear()
+            res["message"] ?: "账号已注销"
         }
 
     override suspend fun logout() {

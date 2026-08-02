@@ -19,4 +19,9 @@ export class UsersService {
       select: { id: true, email: true, nickname: true, role: true },
     });
   }
+
+  async delete(id: string) {
+    await this.prisma.user.delete({ where: { id } });
+    return { message: '账号已注销' };
+  }
 }

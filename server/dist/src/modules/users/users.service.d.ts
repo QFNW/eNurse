@@ -17,4 +17,7 @@ export declare class UsersService {
         nickname: string | null;
         role: import("../../../generated/prisma/enums").Role;
     }>;
+    delete(id: string): Promise<{
+        message: string;
+    }>;
 }

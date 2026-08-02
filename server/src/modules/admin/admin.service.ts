@@ -74,6 +74,7 @@ export class AdminService {
           email: true,
           nickname: true,
           role: true,
+          isDisabled: true,
           createdAt: true,
           _count: { select: { bmRecords: true, medications: true } },
         },
@@ -106,7 +107,7 @@ export class AdminService {
     });
   }
 
-  async disableUser(userId: string, requesterId?: string) {
+  async setUserStatus(userId: string, isDisabled: boolean, requesterId?: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -118,17 +119,96 @@ export class AdminService {
       throw new BadRequestException('不能禁用自己的账号');
     }
 
-    // Replace password with a random hash so user cannot log in
-    const randomHash = await bcrypt.hash(
-      `disabled_${userId}_${Date.now()}`,
-      6,
-    );
-
     return this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash: randomHash },
-      select: { id: true, email: true, role: true },
+      data: { isDisabled },
+      select: { id: true, email: true, nickname: true, role: true, isDisabled: true },
     });
+  }
+
+  async resetPassword(userId: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) throw new NotFoundException('用户不存在');
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+      select: { id: true, email: true },
+    });
+    return { message: '密码已重置' };
+  }
+
+  async getUserDetail(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        displayName: true,
+        nickname: true,
+        role: true,
+        isVirtual: true,
+        isDisabled: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: { bmRecords: true, medicationRecords: true, groupMemberships: true },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('用户不存在');
+
+    const [groups, bmRecords, medicationRecords, medications] = await Promise.all([
+      this.prisma.groupMember.findMany({
+        where: { userId },
+        select: {
+          roleInGroup: true,
+          joinedAt: true,
+          group: {
+            select: {
+              id: true,
+              name: true,
+              _count: { select: { members: true } },
+            },
+          },
+        },
+        orderBy: { joinedAt: 'desc' },
+      }),
+      this.prisma.bmRecord.findMany({
+        where: { userId },
+        orderBy: { recordedAt: 'desc' },
+        take: 20,
+      }),
+      this.prisma.medicationRecord.findMany({
+        where: { userId },
+        include: { medication: { select: { id: true, name: true } } },
+        orderBy: { takenAt: 'desc' },
+        take: 20,
+      }),
+      this.prisma.medication.findMany({
+        where: { userId, isActive: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      ...user,
+      groups: groups.map((m) => ({
+        id: m.group.id,
+        name: m.group.name,
+        roleInGroup: m.roleInGroup,
+        joinedAt: m.joinedAt,
+        memberCount: m.group._count.members,
+      })),
+      bmRecords,
+      medicationRecords,
+      medications,
+      counts: user._count,
+    };
   }
 
   async getGroups(page = 1, pageSize = 20) {

@@ -13,7 +13,10 @@ import {
 import { AdminService } from './admin.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../../generated/prisma/client';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('api/v1/admin')
 export class AdminController {
@@ -49,10 +52,29 @@ export class AdminController {
     return this.adminService.updateUserRole(userId, body.role);
   }
 
-  @Delete('users/:id')
+  @Get('users/:id')
   @Roles(Role.ADMIN)
-  disableUser(@Param('id') userId: string) {
-    return this.adminService.disableUser(userId);
+  getUserDetail(@Param('id') userId: string) {
+    return this.adminService.getUserDetail(userId);
+  }
+
+  @Put('users/:id/status')
+  @Roles(Role.ADMIN)
+  setUserStatus(
+    @Param('id') userId: string,
+    @Body() body: UpdateUserStatusDto,
+    @CurrentUser('sub') requesterId?: string,
+  ) {
+    return this.adminService.setUserStatus(userId, body.isDisabled, requesterId);
+  }
+
+  @Put('users/:id/password')
+  @Roles(Role.ADMIN)
+  resetPassword(
+    @Param('id') userId: string,
+    @Body() body: ResetPasswordDto,
+  ) {
+    return this.adminService.resetPassword(userId, body.newPassword);
   }
 
   @Get('groups')

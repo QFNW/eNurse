@@ -16,6 +16,7 @@ export declare class AdminService {
             email: string;
             nickname: string | null;
             role: Role;
+            isDisabled: boolean;
             createdAt: Date;
             _count: {
                 bmRecords: number;
@@ -32,10 +33,75 @@ export declare class AdminService {
         nickname: string | null;
         role: Role;
     }>;
-    disableUser(userId: string, requesterId?: string): Promise<{
+    setUserStatus(userId: string, isDisabled: boolean, requesterId?: string): Promise<{
         id: string;
         email: string;
+        nickname: string | null;
         role: Role;
+        isDisabled: boolean;
+    }>;
+    resetPassword(userId: string, newPassword: string): Promise<{
+        message: string;
+    }>;
+    getUserDetail(userId: string): Promise<{
+        groups: {
+            id: string;
+            name: string;
+            roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
+            joinedAt: Date;
+            memberCount: number;
+        }[];
+        bmRecords: {
+            id: string;
+            createdAt: Date;
+            userId: string;
+            recordedAt: Date;
+            notes: string | null;
+        }[];
+        medicationRecords: ({
+            medication: {
+                id: string;
+                name: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            userId: string;
+            notes: string | null;
+            medicationId: string;
+            takenAt: Date;
+        })[];
+        medications: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
+            userId: string;
+            notes: string | null;
+            dosage: string | null;
+            unit: string | null;
+            isActive: boolean;
+        }[];
+        counts: {
+            bmRecords: number;
+            medicationRecords: number;
+            groupMemberships: number;
+        };
+        id: string;
+        username: string;
+        email: string;
+        displayName: string;
+        nickname: string | null;
+        role: Role;
+        isVirtual: boolean;
+        isDisabled: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        _count: {
+            bmRecords: number;
+            medicationRecords: number;
+            groupMemberships: number;
+        };
     }>;
     getGroups(page?: number, pageSize?: number): Promise<{
         groups: ({

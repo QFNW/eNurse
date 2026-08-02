@@ -49,7 +49,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun recordBm() {
+    fun recordBm(notes: String? = null) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isRecording = true)
             val userId = tokenDataStore.userId.first()
@@ -60,7 +60,7 @@ class HomeViewModel @Inject constructor(
             val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
                 .format(java.util.Date())
 
-            bmRepository.record(userId, now)
+            bmRepository.record(userId, now, notes)
                 .onSuccess {
                     _state.value = _state.value.copy(isRecording = false, recordSuccess = true)
                 }
@@ -71,7 +71,7 @@ class HomeViewModel @Inject constructor(
                         e is java.net.SocketException
                     val isAuthError = e is retrofit2.HttpException && (e as retrofit2.HttpException).code() == 401
                     if (isNetworkError || isAuthError) {
-                        bmRepository.recordOffline(userId, now)
+                        bmRepository.recordOffline(userId, now, notes)
                         _state.value = _state.value.copy(isRecording = false, recordSuccess = true,
                             error = "网络异常，已本地保存，稍后自动同步")
                     } else {

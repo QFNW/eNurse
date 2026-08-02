@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
+import UserDetailPage from './pages/UserDetailPage';
 import GroupsPage from './pages/GroupsPage';
 import AdminLayout from './components/AdminLayout';
 
@@ -26,6 +27,7 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="users" element={<UsersPage />} />
+        <Route path="users/:id" element={<UserDetailPage />} />
         <Route path="groups" element={<GroupsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/admin" replace />} />

@@ -345,6 +345,7 @@ export declare class GroupsService {
         nickname: string | null;
         role: Role;
         isVirtual: boolean;
+        isDisabled: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;

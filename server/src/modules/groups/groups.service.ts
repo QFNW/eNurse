@@ -610,7 +610,7 @@ export class GroupsService {
         medicationId: dto.medicationId,
         userId: patientId,
         takenAt: new Date(),
-        ...(dto.notes ? { notes: dto.notes } : {}),
+        notes: dto.notes || null,
       },
     });
   }

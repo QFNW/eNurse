@@ -99,6 +99,7 @@ let AdminService = class AdminService {
                     email: true,
                     nickname: true,
                     role: true,
+                    isDisabled: true,
                     createdAt: true,
                     _count: { select: { bmRecords: true, medications: true } },
                 },
@@ -125,7 +126,7 @@ let AdminService = class AdminService {
             select: { id: true, email: true, nickname: true, role: true },
         });
     }
-    async disableUser(userId, requesterId) {
+    async setUserStatus(userId, isDisabled, requesterId) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
@@ -137,12 +138,93 @@ let AdminService = class AdminService {
         if (requesterId && userId === requesterId) {
             throw new common_1.BadRequestException('不能禁用自己的账号');
         }
-        const randomHash = await bcrypt.hash(`disabled_${userId}_${Date.now()}`, 6);
         return this.prisma.user.update({
             where: { id: userId },
-            data: { passwordHash: randomHash },
-            select: { id: true, email: true, role: true },
+            data: { isDisabled },
+            select: { id: true, email: true, nickname: true, role: true, isDisabled: true },
         });
+    }
+    async resetPassword(userId, newPassword) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+        if (!user)
+            throw new common_1.NotFoundException('用户不存在');
+        const passwordHash = await bcrypt.hash(newPassword, 12);
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { passwordHash },
+            select: { id: true, email: true },
+        });
+        return { message: '密码已重置' };
+    }
+    async getUserDetail(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                displayName: true,
+                nickname: true,
+                role: true,
+                isVirtual: true,
+                isDisabled: true,
+                createdAt: true,
+                updatedAt: true,
+                _count: {
+                    select: { bmRecords: true, medicationRecords: true, groupMemberships: true },
+                },
+            },
+        });
+        if (!user)
+            throw new common_1.NotFoundException('用户不存在');
+        const [groups, bmRecords, medicationRecords, medications] = await Promise.all([
+            this.prisma.groupMember.findMany({
+                where: { userId },
+                select: {
+                    roleInGroup: true,
+                    joinedAt: true,
+                    group: {
+                        select: {
+                            id: true,
+                            name: true,
+                            _count: { select: { members: true } },
+                        },
+                    },
+                },
+                orderBy: { joinedAt: 'desc' },
+            }),
+            this.prisma.bmRecord.findMany({
+                where: { userId },
+                orderBy: { recordedAt: 'desc' },
+                take: 20,
+            }),
+            this.prisma.medicationRecord.findMany({
+                where: { userId },
+                include: { medication: { select: { id: true, name: true } } },
+                orderBy: { takenAt: 'desc' },
+                take: 20,
+            }),
+            this.prisma.medication.findMany({
+                where: { userId, isActive: true },
+                orderBy: { createdAt: 'desc' },
+            }),
+        ]);
+        return {
+            ...user,
+            groups: groups.map((m) => ({
+                id: m.group.id,
+                name: m.group.name,
+                roleInGroup: m.roleInGroup,
+                joinedAt: m.joinedAt,
+                memberCount: m.group._count.members,
+            })),
+            bmRecords,
+            medicationRecords,
+            medications,
+            counts: user._count,
+        };
     }
     async getGroups(page = 1, pageSize = 20) {
         const [groups, total] = await Promise.all([

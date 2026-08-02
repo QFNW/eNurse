@@ -24,6 +24,7 @@ model User {
   nickname      String?
   role          Role      @default(PATIENT)
   isVirtual     Boolean   @default(false)
+  isDisabled    Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

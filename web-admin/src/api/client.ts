@@ -15,7 +15,9 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    // Don't redirect for the login endpoint itself (wrong password → 401)
+    const isLoginRequest = err.config?.url?.includes('/admin/login');
+    if (err.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('adminToken');
       window.location.href = '/admin/login';
     }

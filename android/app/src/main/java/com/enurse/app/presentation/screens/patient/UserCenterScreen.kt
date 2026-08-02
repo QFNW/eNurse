@@ -13,16 +13,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.enurse.app.presentation.theme.*
+import com.enurse.app.presentation.viewmodel.AuthViewModel
 
 @Composable
 fun UserCenterScreen(
     onGoSettings: () -> Unit,
     onLogout: () -> Unit
 ) {
+    val viewModel: AuthViewModel = hiltViewModel()
+    val authState by viewModel.state.collectAsState()
     var showLogoutConfirm by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     var feedbackText by remember { mutableStateOf("") }
     var feedbackSent by remember { mutableStateOf(false) }
+
+    // Watch for delete account success
+    LaunchedEffect(authState.success) {
+        if (authState.success && authState.userRole == null) {
+            onLogout()
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -52,6 +64,8 @@ fun UserCenterScreen(
                 MenuRow("⚙️", "设置", onClick = onGoSettings)
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = CardBorder)
                 MenuRow("🚪", "退出登录", onClick = { showLogoutConfirm = true })
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = CardBorder)
+                MenuRow("🗑️", "注销账号", onClick = { showDeleteConfirm = true })
             }
         }
 
@@ -98,6 +112,24 @@ fun UserCenterScreen(
                 ) { Text("退出") }
             },
             dismissButton = { TextButton(onClick = { showLogoutConfirm = false }) { Text("取消") } }
+        )
+    }
+
+    // Delete account confirm
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("注销账号", fontWeight = FontWeight.Bold) },
+            text = { Text("此操作不可撤销。\n\n注销后，您的所有数据将被永久删除，包括打卡记录、用药记录和个人设置。") },
+            confirmButton = {
+                Button(onClick = { viewModel.deleteAccount() },
+                    shape = RoundedCornerShape(20.dp),
+                    enabled = !authState.isLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = AlertRed)
+                ) { Text(if (authState.isLoading) "注销中..." else "确认注销") }
+            },
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("取消") } }
         )
     }
 }

@@ -30,6 +30,10 @@ let UsersService = class UsersService {
             select: { id: true, email: true, nickname: true, role: true },
         });
     }
+    async delete(id) {
+        await this.prisma.user.delete({ where: { id } });
+        return { message: '账号已注销' };
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([

@@ -27,6 +27,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    var bmNotes by remember { mutableStateOf("") }
 
     Scaffold(
         containerColor = Background,
@@ -58,8 +59,19 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Notes input
+            OutlinedTextField(
+                value = bmNotes, onValueChange = { bmNotes = it },
+                label = { Text("备注（可选）") },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                shape = RoundedCornerShape(14.dp),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Big BM Button
-            BigBmButton(onClick = { viewModel.recordBm() }, isLoading = state.isRecording)
+            BigBmButton(onClick = { viewModel.recordBm(bmNotes.ifBlank { null }); bmNotes = "" }, isLoading = state.isRecording)
 
             // BM feedback
             if (state.recordSuccess) {

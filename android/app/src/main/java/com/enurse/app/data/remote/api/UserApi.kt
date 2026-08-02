@@ -9,4 +9,7 @@ interface UserApi {
 
     @PUT("users/me")
     suspend fun updateProfile(@Body body: Map<String, String>): UserResponse
+
+    @DELETE("users/me")
+    suspend fun deleteAccount(): Map<String, String>
 }
