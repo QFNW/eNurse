@@ -158,6 +158,69 @@ let AdminService = class AdminService {
         });
         return { message: '密码已重置' };
     }
+    async deleteUser(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+        if (!user)
+            throw new common_1.NotFoundException('用户不存在');
+        if (user.role === 'ADMIN') {
+            throw new common_1.BadRequestException('不能注销管理员账号');
+        }
+        const ownedGroups = await this.prisma.groupMember.findMany({
+            where: { userId, roleInGroup: 'OWNER' },
+            select: { groupId: true },
+        });
+        if (ownedGroups.length > 0) {
+            await this.prisma.group.deleteMany({
+                where: { id: { in: ownedGroups.map((m) => m.groupId) } },
+            });
+        }
+        await this.prisma.user.delete({ where: { id: userId } });
+        return { message: '用户已注销' };
+    }
+    async getGroupMembers(groupId) {
+        const group = await this.prisma.group.findUnique({
+            where: { id: groupId },
+            select: { id: true, name: true },
+        });
+        if (!group)
+            throw new common_1.NotFoundException('小组不存在');
+        const members = await this.prisma.groupMember.findMany({
+            where: { groupId },
+            select: {
+                id: true,
+                roleInGroup: true,
+                joinedAt: true,
+                user: {
+                    select: { id: true, email: true, nickname: true, displayName: true, role: true },
+                },
+            },
+            orderBy: { joinedAt: 'asc' },
+        });
+        return {
+            group,
+            members: members.map((m) => ({
+                ...m,
+                user: m.user
+                    ? {
+                        ...m.user,
+                        displayName: m.user.displayName ?? m.user.nickname ?? '用户',
+                    }
+                    : null,
+            })),
+        };
+    }
+    async deleteGroup(groupId) {
+        const group = await this.prisma.group.findUnique({
+            where: { id: groupId },
+            select: { id: true, name: true },
+        });
+        if (!group)
+            throw new common_1.NotFoundException('小组不存在');
+        await this.prisma.group.delete({ where: { id: groupId } });
+        return { message: `小组「${group.name}」已解散` };
+    }
     async getUserDetail(userId) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -240,6 +303,20 @@ let AdminService = class AdminService {
             this.prisma.group.count(),
         ]);
         return { groups, total, page, pageSize };
+    }
+    async getFeedback(page = 1, pageSize = 20) {
+        const [feedbacks, total] = await Promise.all([
+            this.prisma.feedback.findMany({
+                include: {
+                    user: { select: { email: true, nickname: true, displayName: true } },
+                },
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+            this.prisma.feedback.count(),
+        ]);
+        return { feedbacks, total, page, pageSize };
     }
     async getStats() {
         const [totalUsers, totalPatients, totalNurses, totalGroups, totalBmRecords, totalMedicationRecords, activeAlerts, todayBmRecords, todayMedicationRecords,] = await Promise.all([

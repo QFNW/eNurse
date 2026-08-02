@@ -9,6 +9,7 @@ import { MedicationsModule } from './modules/medications/medications.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { FeedbackModule } from './modules/feedback/feedback.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -30,6 +31,7 @@ import configuration from './config/configuration';
     AlertsModule,
     GroupsModule,
     AdminModule,
+    FeedbackModule,
   ],
   providers: [
     {

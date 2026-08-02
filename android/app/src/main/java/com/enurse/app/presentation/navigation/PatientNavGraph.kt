@@ -7,19 +7,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material.icons.outlined.Person
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.enurse.app.presentation.screens.patient.HomeScreen
-import com.enurse.app.presentation.screens.patient.MedicationScreen
-import com.enurse.app.presentation.screens.patient.BmCalendarScreen
-import com.enurse.app.presentation.screens.patient.SettingsScreen
 import com.enurse.app.presentation.screens.patient.UserCenterScreen
 import com.enurse.app.presentation.theme.Primary
 import com.enurse.app.presentation.theme.SurfaceWhite
@@ -37,10 +33,12 @@ fun PatientNavGraph(navController: NavHostController, onLogout: () -> Unit) {
     val tabController = rememberNavController()
     val tabs = listOf(
         BottomNavItem("首页", Icons.Filled.Home, Icons.Outlined.Home, "home"),
-        BottomNavItem("用药", Icons.Filled.MedicalServices, Icons.Outlined.MedicalServices, "medication"),
         BottomNavItem("我的", Icons.Filled.Person, Icons.Outlined.Person, "profile"),
     )
-    var selectedTab by remember { mutableIntStateOf(0) }
+    // Highlight follows the actual tab route, so returning from a top-level
+    // screen (e.g. patient/my-groups) never desyncs the selected tab
+    val backStackEntry by tabController.currentBackStackEntryAsState()
+    val selectedTab = tabs.indexOfFirst { it.route == backStackEntry?.destination?.route }.coerceAtLeast(0)
 
     Scaffold(
         bottomBar = {
@@ -49,7 +47,6 @@ fun PatientNavGraph(navController: NavHostController, onLogout: () -> Unit) {
                     NavigationBarItem(
                         selected = selectedTab == index,
                         onClick = {
-                            selectedTab = index
                             tabController.navigate(item.route) {
                                 popUpTo(tabController.graph.startDestinationId)
                                 launchSingleTop = true
@@ -76,17 +73,15 @@ fun PatientNavGraph(navController: NavHostController, onLogout: () -> Unit) {
             composable("home") {
                 HomeScreen(
                     onGoCalendar = { navController.navigate("patient/calendar") },
-                    onGoMedication = { selectedTab = 1; tabController.navigate("medication") },
-                    onGoSettings = { selectedTab = 2; tabController.navigate("profile") },
-                    onLogout = onLogout
+                    onGoMedication = { navController.navigate("patient/medication") }
                 )
-            }
-            composable("medication") {
-                MedicationScreen(onGoBack = { selectedTab = 0; tabController.navigate("home") })
             }
             composable("profile") {
                 UserCenterScreen(
-                    onGoSettings = { navController.navigate("patient/settings") },
+                    isPatient = true,
+                    onGoBmReminder = { navController.navigate("patient/bm-reminder") },
+                    onGoJoinGroup = { navController.navigate("patient/join-group") },
+                    onGoMyGroups = { navController.navigate("patient/my-groups") },
                     onLogout = onLogout
                 )
             }

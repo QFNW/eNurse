@@ -28,6 +28,9 @@ class GroupRepositoryImpl @Inject constructor(
     override suspend fun removeMember(groupId: String, userId: String): Result<Unit> =
         runCatching { groupApi.removeMember(groupId, userId) }
 
+    override suspend fun leaveGroup(groupId: String): Result<Unit> =
+        runCatching { groupApi.leave(groupId) }
+
     override suspend fun getMemberEvents(groupId: String, userId: String): Result<Map<String, List<Any>>> =
         runCatching { groupApi.getMemberEvents(groupId, userId) }
 

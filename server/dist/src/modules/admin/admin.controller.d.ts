@@ -105,6 +105,9 @@ export declare class AdminController {
     resetPassword(userId: string, body: ResetPasswordDto): Promise<{
         message: string;
     }>;
+    deleteUser(userId: string): Promise<{
+        message: string;
+    }>;
     getGroups(page?: string, pageSize?: string): Promise<{
         groups: ({
             _count: {
@@ -125,6 +128,44 @@ export declare class AdminController {
         total: number;
         page: number;
         pageSize: number;
+    }>;
+    getFeedback(page?: string, pageSize?: string): Promise<{
+        feedbacks: ({
+            user: {
+                email: string;
+                displayName: string;
+                nickname: string | null;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            userId: string;
+            content: string;
+        })[];
+        total: number;
+        page: number;
+        pageSize: number;
+    }>;
+    getGroupMembers(groupId: string): Promise<{
+        group: {
+            id: string;
+            name: string;
+        };
+        members: {
+            user: {
+                displayName: string;
+                id: string;
+                email: string;
+                nickname: string | null;
+                role: Role;
+            } | null;
+            id: string;
+            roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
+            joinedAt: Date;
+        }[];
+    }>;
+    deleteGroup(groupId: string): Promise<{
+        message: string;
     }>;
     getStats(): Promise<{
         users: {

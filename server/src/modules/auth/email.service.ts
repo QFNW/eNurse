@@ -51,6 +51,20 @@ export class EmailService {
     }
   }
 
+  /** Generic mail send — falls back to console log when SMTP is not configured */
+  async sendMail(to: string, subject: string, html: string): Promise<void> {
+    if (this.transporter && to) {
+      await this.transporter.sendMail({
+        from: this.configService.get<string>('smtp.user'),
+        to,
+        subject,
+        html,
+      });
+    } else {
+      console.log(`[EmailService] ${subject} -> ${to}: ${html}`);
+    }
+  }
+
   async verifyCode(email: string, code: string): Promise<boolean> {
     const stored = await this.cacheService.getCode(email);
     return stored !== null && stored === code;

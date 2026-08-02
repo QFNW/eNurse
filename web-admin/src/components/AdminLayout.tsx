@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Button, Typography } from 'antd';
-import { DashboardOutlined, UserOutlined, TeamOutlined, LogoutOutlined } from '@ant-design/icons';
+import { DashboardOutlined, UserOutlined, TeamOutlined, MessageOutlined, LogoutOutlined } from '@ant-design/icons';
 
 const { Sider, Content, Header } = Layout;
 const { Title } = Typography;
@@ -15,6 +15,7 @@ export default function AdminLayout() {
     { key: '/admin', icon: <DashboardOutlined />, label: '概览' },
     { key: '/admin/users', icon: <UserOutlined />, label: '用户管理' },
     { key: '/admin/groups', icon: <TeamOutlined />, label: '小组管理' },
+    { key: '/admin/feedback', icon: <MessageOutlined />, label: '反馈管理' },
   ];
 
   const logout = () => {

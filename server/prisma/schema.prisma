@@ -36,6 +36,7 @@ model User {
   groupMemberships    GroupMember[]
   createdGroups       Group[]              @relation("GroupCreator")
   adminRequests       AdminRequest[]
+  feedbacks           Feedback[]
 
   @@map("users")
 }
@@ -91,6 +92,21 @@ model AdminRequest {
 
   @@unique([groupId, userId])
   @@map("admin_requests")
+}
+
+// ========== 反馈 ==========
+
+model Feedback {
+  id        String   @id @default(cuid())
+  // Nullable so feedback survives account deletion (shown as "已注销用户")
+  userId    String?
+  content   String
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("feedbacks")
 }
 
 // ========== 大便系统 ==========

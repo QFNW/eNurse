@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { randomInt } from 'crypto';
 import { parseDate } from '../../common/utils/date.utils';
 import { Role } from '../../../generated/prisma/client';
 import {
@@ -59,7 +60,7 @@ export class GroupsService {
         orderBy: { createdAt: 'desc' },
       });
     }
-    // Patient sees groups they belong to (exclude inviteCode)
+    // Patient sees groups they belong to (inviteCode included so they can share it)
     const memberships = await this.prisma.groupMember.findMany({
       where: { userId },
       include: {
@@ -67,6 +68,7 @@ export class GroupsService {
           select: {
             id: true,
             name: true,
+            inviteCode: true,
             createdBy: true,
             createdAt: true,
             updatedAt: true,
@@ -183,18 +185,38 @@ export class GroupsService {
     });
   }
 
-  // ========== Members (Nurse) ==========
+  // ========== Members (any group member) ==========
 
   async getMembers(userId: string, groupId: string) {
-    await this.ensureAdminOrOwner(userId, groupId);
+    // Any group member may view the roster; managers get full details
+    const requester = await this.prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+    });
+    if (!requester) throw new ForbiddenException('只有小组成员可以查看成员列表');
+    const isManager = requester.roleInGroup === 'OWNER' || requester.roleInGroup === 'ADMIN';
+
     const members = await this.prisma.groupMember.findMany({
       where: { groupId },
       include: {
         user: {
-          select: { id: true, email: true, nickname: true, role: true },
+          select: isManager
+            ? { id: true, email: true, nickname: true, displayName: true, role: true }
+            : { id: true, nickname: true, displayName: true, role: true },
         },
       },
     });
+
+    if (!isManager) {
+      // Patients see nickname + role only, no email / alert counts
+      return members.map((m) => ({
+        id: m.id,
+        groupId: m.groupId,
+        userId: m.userId,
+        roleInGroup: m.roleInGroup,
+        joinedAt: m.joinedAt,
+        user: m.user,
+      }));
+    }
 
     // Batch alert counts in a single query
     const memberIds = members.map((m) => m.userId);
@@ -477,41 +499,18 @@ export class GroupsService {
   }
 
   private async generateInviteCode(): Promise<string> {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // 6-digit random number
     const maxRetries = 5;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      let code = '';
-      for (let i = 0; i < 8; i++) {
-        code += chars[Math.floor(Math.random() * chars.length)];
-      }
+      const code = String(randomInt(0, 1000000)).padStart(6, '0');
       const existing = await this.prisma.group.findUnique({
         where: { inviteCode: code },
       });
       if (!existing) return code;
     }
-
-    // Fallback: generate random codes with DB check
-    for (let attempt = 0; attempt < 5; attempt++) {
-      let code = '';
-      for (let i = 0; i < 8; i++) {
-        code += chars[Math.floor(Math.random() * chars.length)];
-      }
-      const existing = await this.prisma.group.findUnique({
-        where: { inviteCode: code },
-      });
-      if (!existing) return code;
-    }
-    // Last resort: crypto-random hex + DB check
-    const crypto = await import('crypto');
-    const hex = crypto.randomBytes(6).toString('hex').toUpperCase().slice(0, 8);
-    const existing = await this.prisma.group.findUnique({
-      where: { inviteCode: hex },
-    });
-    if (!existing) return hex;
-    // Ultra-fallback: timestamp suffix
-    const ts = Date.now().toString(36).toUpperCase();
-    return ts.slice(-8).padStart(8, 'X');
+    // Last resort: timestamp last-6 suffix (still 6 digits)
+    return Date.now().toString().slice(-6);
   }
 
   async createMedicationForPatient(nurseId: string, groupId: string, patientId: string, dto: { name: string; dosage?: string }) {

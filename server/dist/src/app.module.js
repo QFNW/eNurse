@@ -21,6 +21,7 @@ const medications_module_1 = require("./modules/medications/medications.module")
 const alerts_module_1 = require("./modules/alerts/alerts.module");
 const groups_module_1 = require("./modules/groups/groups.module");
 const admin_module_1 = require("./modules/admin/admin.module");
+const feedback_module_1 = require("./modules/feedback/feedback.module");
 const cache_module_1 = require("./modules/cache/cache.module");
 const jwt_auth_guard_1 = require("./common/guards/jwt-auth.guard");
 const roles_guard_1 = require("./common/guards/roles.guard");
@@ -45,6 +46,7 @@ exports.AppModule = AppModule = __decorate([
             alerts_module_1.AlertsModule,
             groups_module_1.GroupsModule,
             admin_module_1.AdminModule,
+            feedback_module_1.FeedbackModule,
         ],
         providers: [
             {

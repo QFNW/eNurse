@@ -5,7 +5,7 @@ import {
   Table, Input, Select, Button, Space, Typography, message, Popconfirm, Modal, Form, Input as AntInput, Tag,
 } from 'antd';
 import { SearchOutlined, EyeOutlined } from '@ant-design/icons';
-import { getUsers, updateUserRole, updateUserStatus, resetUserPassword } from '../api/adminApi';
+import { getUsers, updateUserRole, updateUserStatus, resetUserPassword, deleteUser } from '../api/adminApi';
 
 const { Title, Text } = Typography;
 
@@ -61,6 +61,17 @@ export default function UsersPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (userId: string) => deleteUser(userId),
+    onSuccess: () => {
+      message.success('用户已注销');
+      invalidate();
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.message || '注销用户失败');
+    },
+  });
+
   const columns = [
     { title: '邮箱', dataIndex: 'email', key: 'email' },
     { title: '昵称', dataIndex: 'nickname', key: 'nickname', render: (v: string | null) => v || '-' },
@@ -105,6 +116,17 @@ export default function UsersPage() {
           <Button size="small" onClick={() => { setResetTarget(record); passwordForm.resetFields(); }}>
             重置密码
           </Button>
+          {record.role !== 'ADMIN' && (
+            <Popconfirm
+              title="注销用户"
+              description={`确认注销「${record.email}」？账号及所有数据将被删除，其反馈记录将保留。`}
+              okText="确认注销"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => deleteMutation.mutate(record.id)}
+            >
+              <Button size="small" danger>注销</Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },

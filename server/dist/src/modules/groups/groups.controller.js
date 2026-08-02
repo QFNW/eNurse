@@ -161,7 +161,6 @@ __decorate([
 ], GroupsController.prototype, "joinByInvite", null);
 __decorate([
     (0, common_1.Get)(':id/members'),
-    (0, roles_decorator_1.Roles)(client_1.Role.NURSE),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),

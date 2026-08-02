@@ -22,5 +22,6 @@ data class UserResponse(
     val email: String,
     val role: String,
     val nickname: String?,
+    val displayName: String? = null,
     val createdAt: String
 )

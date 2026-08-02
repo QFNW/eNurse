@@ -2,6 +2,7 @@ package com.enurse.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enurse.app.data.remote.dto.response.UserResponse
 import com.enurse.app.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,12 @@ data class AuthUiState(
     val error: String? = null,
     val success: Boolean = false,
     val userRole: String? = null,
-    val codeSent: Boolean = false
+    val codeSent: Boolean = false,
+    val profile: UserResponse? = null,
+    val profileSaved: Boolean = false,
+    val passwordChanged: Boolean = false,
+    val feedbackSubmitting: Boolean = false,
+    val feedbackSent: Boolean = false
 )
 
 @HiltViewModel
@@ -40,13 +46,13 @@ class AuthViewModel @Inject constructor(
 
     fun sendCode(email: String) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true, error = null)
+            _state.value = _state.value.copy(error = null)
             authRepository.sendCode(email)
                 .onSuccess { msg ->
-                    _state.value = _state.value.copy(isLoading = false, codeSent = true, error = null)
+                    _state.value = _state.value.copy(codeSent = true, error = null)
                 }
                 .onFailure { e ->
-                    _state.value = _state.value.copy(isLoading = false, error = e.message ?: "发送验证码失败")
+                    _state.value = _state.value.copy(error = e.message ?: "发送验证码失败")
                 }
         }
     }
@@ -71,6 +77,56 @@ class AuthViewModel @Inject constructor(
                 .onSuccess { _state.value = AuthUiState(success = true, userRole = null) }
                 .onFailure { e -> _state.value = _state.value.copy(isLoading = false, error = e.message ?: "注销失败") }
         }
+    }
+
+    fun loadProfile() {
+        viewModelScope.launch {
+            authRepository.getProfile()
+                .onSuccess { _state.value = _state.value.copy(profile = it, error = null) }
+                .onFailure { e -> _state.value = _state.value.copy(error = e.message ?: "加载个人信息失败") }
+        }
+    }
+
+    fun updateProfile(displayName: String) {
+        viewModelScope.launch {
+            authRepository.updateDisplayName(displayName)
+                .onSuccess { _state.value = _state.value.copy(profile = it, profileSaved = true, error = null) }
+                .onFailure { e -> _state.value = _state.value.copy(error = e.message ?: "修改失败") }
+        }
+    }
+
+    fun clearProfileSaved() {
+        _state.value = _state.value.copy(profileSaved = false)
+    }
+
+    fun changePassword(oldPassword: String, newPassword: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true, passwordChanged = false, error = null)
+            authRepository.changePassword(oldPassword, newPassword)
+                .onSuccess {
+                    _state.value = _state.value.copy(isLoading = false, passwordChanged = true, error = null)
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(isLoading = false, passwordChanged = false, error = e.message ?: "修改密码失败")
+                }
+        }
+    }
+
+    fun submitFeedback(content: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(feedbackSubmitting = true, feedbackSent = false, error = null)
+            authRepository.submitFeedback(content)
+                .onSuccess {
+                    _state.value = _state.value.copy(feedbackSubmitting = false, feedbackSent = true, error = null)
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(feedbackSubmitting = false, feedbackSent = false, error = e.message ?: "反馈提交失败")
+                }
+        }
+    }
+
+    fun clearFeedbackSent() {
+        _state.value = _state.value.copy(feedbackSent = false)
     }
 
     fun logout() {

@@ -18,8 +18,20 @@ export const updateUserStatus = (userId: string, isDisabled: boolean) =>
 export const resetUserPassword = (userId: string, newPassword: string) =>
   client.put(`/admin/users/${userId}/password`, { newPassword }).then((r) => r.data);
 
+export const deleteUser = (userId: string) =>
+  client.delete(`/admin/users/${userId}`).then((r) => r.data);
+
 export const getGroups = (params?: { page?: number; pageSize?: number }) =>
   client.get('/admin/groups', { params }).then((r) => r.data);
 
+export const getGroupMembers = (groupId: string) =>
+  client.get(`/admin/groups/${groupId}/members`).then((r) => r.data);
+
+export const deleteGroup = (groupId: string) =>
+  client.delete(`/admin/groups/${groupId}`).then((r) => r.data);
+
 export const getStats = () =>
   client.get('/admin/stats').then((r) => r.data);
+
+export const getFeedback = (params?: { page?: number; pageSize?: number }) =>
+  client.get('/admin/feedback', { params }).then((r) => r.data);

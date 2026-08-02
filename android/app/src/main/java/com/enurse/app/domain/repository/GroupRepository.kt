@@ -10,6 +10,7 @@ interface GroupRepository {
     suspend fun joinByInvite(inviteCode: String): Result<GroupMemberResponse>
     suspend fun getMembers(groupId: String): Result<List<GroupMemberResponse>>
     suspend fun removeMember(groupId: String, userId: String): Result<Unit>
+    suspend fun leaveGroup(groupId: String): Result<Unit>
     suspend fun getMemberEvents(groupId: String, userId: String): Result<Map<String, List<Any>>>
     suspend fun getMemberStrategies(groupId: String, userId: String): Result<Map<String, Any>>
     suspend fun toggleLock(groupId: String, userId: String, target: String, scheduleId: String? = null): Result<Any>

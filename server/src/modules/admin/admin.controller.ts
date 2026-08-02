@@ -77,6 +77,12 @@ export class AdminController {
     return this.adminService.resetPassword(userId, body.newPassword);
   }
 
+  @Delete('users/:id')
+  @Roles(Role.ADMIN)
+  deleteUser(@Param('id') userId: string) {
+    return this.adminService.deleteUser(userId);
+  }
+
   @Get('groups')
   @Roles(Role.ADMIN)
   getGroups(
@@ -87,6 +93,30 @@ export class AdminController {
       parseInt(page || '1', 10) || 1,
       parseInt(pageSize || '20', 10) || 20,
     );
+  }
+
+  @Get('feedback')
+  @Roles(Role.ADMIN)
+  getFeedback(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.adminService.getFeedback(
+      parseInt(page || '1', 10) || 1,
+      parseInt(pageSize || '20', 10) || 20,
+    );
+  }
+
+  @Get('groups/:id/members')
+  @Roles(Role.ADMIN)
+  getGroupMembers(@Param('id') groupId: string) {
+    return this.adminService.getGroupMembers(groupId);
+  }
+
+  @Delete('groups/:id')
+  @Roles(Role.ADMIN)
+  deleteGroup(@Param('id') groupId: string) {
+    return this.adminService.deleteGroup(groupId);
   }
 
   @Get('stats')

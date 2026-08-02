@@ -10,6 +10,12 @@ interface UserApi {
     @PUT("users/me")
     suspend fun updateProfile(@Body body: Map<String, String>): UserResponse
 
+    @PUT("users/me/password")
+    suspend fun changePassword(@Body body: Map<String, String>): Map<String, String>
+
+    @POST("feedback")
+    suspend fun submitFeedback(@Body body: Map<String, String>): Map<String, String>
+
     @DELETE("users/me")
     suspend fun deleteAccount(): Map<String, String>
 }

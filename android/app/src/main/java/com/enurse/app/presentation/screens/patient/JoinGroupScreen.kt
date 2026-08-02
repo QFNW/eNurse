@@ -5,34 +5,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.enurse.app.domain.repository.GroupRepository
 import com.enurse.app.presentation.theme.*
-import com.enurse.app.presentation.viewmodel.BmViewModel
-import dagger.hilt.android.EntryPointAccessors
-import androidx.compose.ui.platform.LocalContext
-import dagger.hilt.EntryPoints
-import dagger.hilt.InstallIn
 import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
-    onGoBack: () -> Unit,
-    bmViewModel: BmViewModel = hiltViewModel()
-) {
+fun JoinGroupScreen(onGoBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val groupRepo = remember {
         val ep = EntryPointAccessors.fromApplication(context.applicationContext, GroupRepoEntryPoint::class.java)
         ep.groupRepository()
     }
-    val bmState by bmViewModel.state.collectAsState()
     var inviteCode by remember { mutableStateOf("") }
     var joinError by remember { mutableStateOf<String?>(null) }
 
@@ -40,52 +33,13 @@ fun SettingsScreen(
         containerColor = Background,
         topBar = {
             TopAppBar(
-                title = { Text("设置", fontWeight = FontWeight.SemiBold) },
+                title = { Text("加入小组", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = { TextButton(onClick = onGoBack) { Text("← 返回", color = Primary) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
             )
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
-            // BM Settings Card
-            SectionCard("💩 大便提醒") {
-                val settings = bmState.settings
-                if (settings != null) {
-                    var intervalDays by remember(settings) { mutableStateOf(settings.intervalDays.toString()) }
-                    var reminderTime by remember(settings) { mutableStateOf(settings.reminderTime) }
-
-                    OutlinedTextField(
-                        value = intervalDays, onValueChange = { intervalDays = it },
-                        label = { Text("提醒间隔（天）") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = reminderTime, onValueChange = { reminderTime = it },
-                        label = { Text("提醒时间（HH:mm）") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { bmViewModel.updateSettings(intervalDays = intervalDays.toIntOrNull(), reminderTime = reminderTime, isEnabled = null) },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                    ) { Text("保存设置", fontWeight = FontWeight.SemiBold) }
-
-                    if (settings.isLocked) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("策略已由护理人员锁定", color = AlertRed, fontSize = 13.sp)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
             // Join Group Card
             SectionCard("👥 加入小组") {
                 OutlinedTextField(

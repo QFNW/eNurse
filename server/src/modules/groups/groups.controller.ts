@@ -91,7 +91,6 @@ export class GroupsController {
   // ========== Members ==========
 
   @Get(':id/members')
-  @Roles(Role.NURSE)
   getMembers(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,

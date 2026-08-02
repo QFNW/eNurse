@@ -1,42 +1,36 @@
 package com.enurse.app.presentation.navigation
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.enurse.app.presentation.screens.nurse.NurseGroupListScreen
-import com.enurse.app.presentation.screens.nurse.NurseGroupDetailScreen
-import com.enurse.app.presentation.screens.nurse.MemberDetailScreen
 import com.enurse.app.presentation.screens.patient.UserCenterScreen
 import com.enurse.app.presentation.theme.Primary
 import com.enurse.app.presentation.theme.SurfaceWhite
 import com.enurse.app.presentation.theme.TextHint
-import com.enurse.app.presentation.viewmodel.NurseViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun NurseNavGraph(navController: NavHostController, onLogout: () -> Unit) {
     val tabController = rememberNavController()
     val tabs = listOf(
         BottomNavItem("小组", Icons.Filled.Groups, Icons.Outlined.Groups, "groups"),
-        BottomNavItem("成员", Icons.Filled.People, Icons.Outlined.People, "members"),
         BottomNavItem("我的", Icons.Filled.Person, Icons.Outlined.Person, "profile"),
     )
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val nurseViewModel: NurseViewModel = hiltViewModel()
+    // Highlight follows the actual tab route, so returning from a top-level
+    // screen (e.g. nurse/groups/:id) never desyncs the selected tab
+    val backStackEntry by tabController.currentBackStackEntryAsState()
+    val selectedTab = tabs.indexOfFirst { it.route == backStackEntry?.destination?.route }.coerceAtLeast(0)
 
     Scaffold(
         bottomBar = {
@@ -45,7 +39,6 @@ fun NurseNavGraph(navController: NavHostController, onLogout: () -> Unit) {
                     NavigationBarItem(
                         selected = selectedTab == index,
                         onClick = {
-                            selectedTab = index
                             tabController.navigate(item.route) {
                                 popUpTo(tabController.graph.startDestinationId)
                                 launchSingleTop = true
@@ -71,25 +64,12 @@ fun NurseNavGraph(navController: NavHostController, onLogout: () -> Unit) {
         ) {
             composable("groups") {
                 NurseGroupListScreen(
-                    onGoGroup = { id -> navController.navigate("nurse/groups/$id") },
-                    onGoBack = onLogout
+                    onGoGroup = { id -> navController.navigate("nurse/groups/$id") }
                 )
-            }
-            composable("members") {
-                val state by nurseViewModel.state.collectAsState()
-                if (state.selectedGroup != null) {
-                    NurseGroupDetailScreen(
-                        groupId = state.selectedGroup!!.id,
-                        onGoMember = { gid, uid -> navController.navigate("nurse/groups/$gid/members/$uid") },
-                        onGoBack = { selectedTab = 0; tabController.navigate("groups") }
-                    )
-                } else {
-                    Box(modifier = Modifier.padding(32.dp)) { Text("请先在小组页面选择一个小组", color = TextHint) }
-                }
             }
             composable("profile") {
                 UserCenterScreen(
-                    onGoSettings = { navController.navigate("patient/settings") },
+                    isPatient = false,
                     onLogout = onLogout
                 )
             }

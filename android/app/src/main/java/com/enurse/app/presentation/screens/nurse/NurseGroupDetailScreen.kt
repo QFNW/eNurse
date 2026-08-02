@@ -10,10 +10,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import com.enurse.app.presentation.theme.*
 import com.enurse.app.presentation.viewmodel.NurseViewModel
 
@@ -26,6 +29,10 @@ fun NurseGroupDetailScreen(
     viewModel: NurseViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var removeTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showAddVirtual by remember { mutableStateOf(false) }
     var virtualName by remember { mutableStateOf("") }
@@ -37,6 +44,7 @@ fun NurseGroupDetailScreen(
 
     Scaffold(
         containerColor = Background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(state.selectedGroup?.name ?: "小组详情", fontWeight = FontWeight.SemiBold) },
@@ -57,7 +65,17 @@ fun NurseGroupDetailScreen(
                     Row(modifier = Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("邀请码", fontSize = 13.sp, color = TextHint)
-                            Text(state.selectedGroup?.inviteCode ?: "", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Primary)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(state.selectedGroup?.inviteCode ?: "", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Primary)
+                                TextButton(
+                                    onClick = {
+                                        val code = state.selectedGroup?.inviteCode ?: return@TextButton
+                                        clipboard.setText(AnnotatedString(code))
+                                        scope.launch { snackbarHostState.showSnackbar("邀请码已复制") }
+                                    },
+                                    contentPadding = PaddingValues(start = 8.dp, end = 4.dp)
+                                ) { Text("复制", fontSize = 13.sp, color = Primary) }
+                            }
                         }
                         Text("${state.selectedGroup?.members?.size ?: 0} 名成员", fontSize = 14.sp, color = TextSecondary)
                     }

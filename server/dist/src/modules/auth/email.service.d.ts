@@ -6,6 +6,7 @@ export declare class EmailService {
     private transporter;
     constructor(configService: ConfigService, cacheService: CacheService);
     sendVerificationCode(email: string): Promise<void>;
+    sendMail(to: string, subject: string, html: string): Promise<void>;
     verifyCode(email: string, code: string): Promise<boolean>;
     consumeCode(email: string, code: string): Promise<boolean>;
 }

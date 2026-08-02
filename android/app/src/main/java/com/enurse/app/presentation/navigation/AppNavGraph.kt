@@ -9,7 +9,10 @@ import com.enurse.app.data.local.datastore.TokenDataStore
 import com.enurse.app.presentation.screens.auth.LoginScreen
 import com.enurse.app.presentation.screens.auth.RegisterScreen
 import com.enurse.app.presentation.screens.patient.BmCalendarScreen
-import com.enurse.app.presentation.screens.patient.SettingsScreen
+import com.enurse.app.presentation.screens.patient.MedicationScreen
+import com.enurse.app.presentation.screens.patient.BmReminderScreen
+import com.enurse.app.presentation.screens.patient.JoinGroupScreen
+import com.enurse.app.presentation.screens.patient.MyGroupsScreen
 import com.enurse.app.presentation.screens.nurse.NurseGroupDetailScreen
 import com.enurse.app.presentation.screens.nurse.MemberDetailScreen
 import dagger.hilt.android.EntryPointAccessors
@@ -81,8 +84,17 @@ fun AppNavGraph() {
         composable("patient/calendar") {
             BmCalendarScreen(onGoBack = { navController.popBackStack() })
         }
-        composable("patient/settings") {
-            SettingsScreen(onGoBack = { navController.popBackStack() })
+        composable("patient/medication") {
+            MedicationScreen(onGoBack = { navController.popBackStack() })
+        }
+        composable("patient/bm-reminder") {
+            BmReminderScreen(onGoBack = { navController.popBackStack() })
+        }
+        composable("patient/join-group") {
+            JoinGroupScreen(onGoBack = { navController.popBackStack() })
+        }
+        composable("patient/my-groups") {
+            MyGroupsScreen(onGoBack = { navController.popBackStack() })
         }
         // Nurse Tab Navigation
         composable("nurse/main") {

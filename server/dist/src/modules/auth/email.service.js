@@ -91,6 +91,19 @@ let EmailService = class EmailService {
             console.log(`[EmailService] 验证码 for ${email}: ${code}`);
         }
     }
+    async sendMail(to, subject, html) {
+        if (this.transporter && to) {
+            await this.transporter.sendMail({
+                from: this.configService.get('smtp.user'),
+                to,
+                subject,
+                html,
+            });
+        }
+        else {
+            console.log(`[EmailService] ${subject} -> ${to}: ${html}`);
+        }
+    }
     async verifyCode(email, code) {
         const stored = await this.cacheService.getCode(email);
         return stored !== null && stored === code;

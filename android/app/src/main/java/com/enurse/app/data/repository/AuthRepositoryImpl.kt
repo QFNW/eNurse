@@ -6,6 +6,7 @@ import com.enurse.app.data.remote.api.UserApi
 import com.enurse.app.data.remote.dto.request.LoginRequest
 import com.enurse.app.data.remote.dto.request.RegisterRequest
 import com.enurse.app.data.remote.dto.response.AuthResponse
+import com.enurse.app.data.remote.dto.response.UserResponse
 import com.enurse.app.domain.repository.AuthRepository
 import javax.inject.Inject
 
@@ -42,6 +43,24 @@ class AuthRepositoryImpl @Inject constructor(
             val res = authApi.refresh(mapOf("refreshToken" to refresh))
             tokenDataStore.saveTokens(res.accessToken, res.refreshToken)
             res
+        }
+
+    override suspend fun getProfile(): Result<UserResponse> =
+        runCatching { userApi.getProfile() }
+
+    override suspend fun updateDisplayName(displayName: String): Result<UserResponse> =
+        runCatching { userApi.updateProfile(mapOf("displayName" to displayName)) }
+
+    override suspend fun changePassword(oldPassword: String, newPassword: String): Result<String> =
+        runCatching {
+            val res = userApi.changePassword(mapOf("oldPassword" to oldPassword, "newPassword" to newPassword))
+            res["message"] ?: "密码已修改"
+        }
+
+    override suspend fun submitFeedback(content: String): Result<String> =
+        runCatching {
+            val res = userApi.submitFeedback(mapOf("content" to content))
+            res["message"] ?: "反馈已提交"
         }
 
     override suspend fun deleteAccount(): Result<String> =

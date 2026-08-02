@@ -39,22 +39,7 @@ export declare class GroupsController {
         name: string;
         inviteCode: string;
         createdBy: string;
-    })[] | {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
-        createdBy: string;
-        _count: {
-            members: number;
-        };
-        creator: {
-            id: string;
-            email: string;
-            nickname: string | null;
-            role: Role;
-        };
-    }[]>;
+    })[]>;
     getById(user: JwtPayload, id: string): Promise<{
         _count: {
             members: number;
@@ -122,18 +107,17 @@ export declare class GroupsController {
         joinedAt: Date;
     }>;
     getMembers(user: JwtPayload, id: string): Promise<{
-        alertCount: number;
-        user: {
-            id: string;
-            email: string;
-            nickname: string | null;
-            role: Role;
-        };
         id: string;
         groupId: string;
         userId: string;
         roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
         joinedAt: Date;
+        user: {
+            id: string;
+            displayName: string;
+            nickname: string | null;
+            role: Role;
+        };
     }[]>;
     leave(user: JwtPayload, id: string): Promise<{
         id: string;

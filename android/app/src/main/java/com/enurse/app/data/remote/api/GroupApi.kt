@@ -20,6 +20,9 @@ interface GroupApi {
     @GET("groups/{id}/members")
     suspend fun getMembers(@Path("id") id: String): List<GroupMemberResponse>
 
+    @POST("groups/{id}/leave")
+    suspend fun leave(@Path("id") id: String): Any
+
     @DELETE("groups/{id}/members/{userId}")
     suspend fun removeMember(@Path("id") id: String, @Path("userId") userId: String)
 

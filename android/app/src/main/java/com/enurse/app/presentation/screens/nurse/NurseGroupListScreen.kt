@@ -8,10 +8,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import com.enurse.app.presentation.theme.*
 import com.enurse.app.presentation.viewmodel.NurseViewModel
 
@@ -19,10 +22,12 @@ import com.enurse.app.presentation.viewmodel.NurseViewModel
 @Composable
 fun NurseGroupListScreen(
     onGoGroup: (String) -> Unit,
-    onGoBack: () -> Unit,
     viewModel: NurseViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val clipboard = LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var showCreate by remember { mutableStateOf(false) }
     var showJoinStaff by remember { mutableStateOf(false) }
     var staffInviteCode by remember { mutableStateOf("") }
@@ -47,10 +52,10 @@ fun NurseGroupListScreen(
 
     Scaffold(
         containerColor = Background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("我的小组", fontWeight = FontWeight.SemiBold) },
-                navigationIcon = { TextButton(onClick = onGoBack) { Text("← 返回", color = Primary) } },
                 actions = { TextButton(onClick = { showJoinStaff = true }) { Text("加入小组", color = Primary, fontSize = 14.sp) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
             )
@@ -100,7 +105,16 @@ fun NurseGroupListScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(group.name, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
-                                Text("邀请码: ${group.inviteCode}", fontSize = 13.sp, color = TextHint)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("邀请码: ${group.inviteCode}", fontSize = 13.sp, color = TextHint)
+                                    TextButton(
+                                        onClick = {
+                                            clipboard.setText(AnnotatedString(group.inviteCode))
+                                            scope.launch { snackbarHostState.showSnackbar("邀请码已复制") }
+                                        },
+                                        contentPadding = PaddingValues(start = 8.dp, end = 4.dp)
+                                    ) { Text("复制", fontSize = 12.sp, color = Primary) }
+                                }
                             }
                             Card(
                                 shape = RoundedCornerShape(12.dp),

@@ -44,8 +44,20 @@ let AdminController = class AdminController {
     resetPassword(userId, body) {
         return this.adminService.resetPassword(userId, body.newPassword);
     }
+    deleteUser(userId) {
+        return this.adminService.deleteUser(userId);
+    }
     getGroups(page, pageSize) {
         return this.adminService.getGroups(parseInt(page || '1', 10) || 1, parseInt(pageSize || '20', 10) || 20);
+    }
+    getFeedback(page, pageSize) {
+        return this.adminService.getFeedback(parseInt(page || '1', 10) || 1, parseInt(pageSize || '20', 10) || 20);
+    }
+    getGroupMembers(groupId) {
+        return this.adminService.getGroupMembers(groupId);
+    }
+    deleteGroup(groupId) {
+        return this.adminService.deleteGroup(groupId);
     }
     getStats() {
         return this.adminService.getStats();
@@ -108,6 +120,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "resetPassword", null);
 __decorate([
+    (0, common_1.Delete)('users/:id'),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "deleteUser", null);
+__decorate([
     (0, common_1.Get)('groups'),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Query)('page')),
@@ -116,6 +136,31 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getGroups", null);
+__decorate([
+    (0, common_1.Get)('feedback'),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('pageSize')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getFeedback", null);
+__decorate([
+    (0, common_1.Get)('groups/:id/members'),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getGroupMembers", null);
+__decorate([
+    (0, common_1.Delete)('groups/:id'),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "deleteGroup", null);
 __decorate([
     (0, common_1.Get)('stats'),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),

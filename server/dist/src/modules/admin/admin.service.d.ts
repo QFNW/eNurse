@@ -43,6 +43,30 @@ export declare class AdminService {
     resetPassword(userId: string, newPassword: string): Promise<{
         message: string;
     }>;
+    deleteUser(userId: string): Promise<{
+        message: string;
+    }>;
+    getGroupMembers(groupId: string): Promise<{
+        group: {
+            id: string;
+            name: string;
+        };
+        members: {
+            user: {
+                displayName: string;
+                id: string;
+                email: string;
+                nickname: string | null;
+                role: Role;
+            } | null;
+            id: string;
+            roleInGroup: import("../../../generated/prisma/enums").GroupMemberRole;
+            joinedAt: Date;
+        }[];
+    }>;
+    deleteGroup(groupId: string): Promise<{
+        message: string;
+    }>;
     getUserDetail(userId: string): Promise<{
         groups: {
             id: string;
@@ -119,6 +143,23 @@ export declare class AdminService {
             name: string;
             inviteCode: string;
             createdBy: string;
+        })[];
+        total: number;
+        page: number;
+        pageSize: number;
+    }>;
+    getFeedback(page?: number, pageSize?: number): Promise<{
+        feedbacks: ({
+            user: {
+                email: string;
+                displayName: string;
+                nickname: string | null;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            userId: string;
+            content: string;
         })[];
         total: number;
         page: number;

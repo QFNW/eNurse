@@ -22,8 +22,6 @@ import com.enurse.app.presentation.viewmodel.HomeViewModel
 fun HomeScreen(
     onGoCalendar: () -> Unit,
     onGoMedication: () -> Unit,
-    onGoSettings: () -> Unit,
-    onLogout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -39,10 +37,6 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("易护", fontWeight = FontWeight.Bold)
                     }
-                },
-                actions = {
-                    TextButton(onClick = onGoSettings) { Text("设置", color = TextSecondary) }
-                    TextButton(onClick = onLogout) { Text("退出", color = TextSecondary) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
             )
