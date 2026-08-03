@@ -16,10 +16,13 @@ import com.enurse.app.presentation.screens.patient.MyGroupsScreen
 import com.enurse.app.presentation.screens.nurse.NurseGroupDetailScreen
 import com.enurse.app.presentation.screens.nurse.MemberDetailScreen
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.flow.first
 
+/**
+ * Main navigation graph. The first destination is decided during splash
+ * (SplashViewModel) and passed in — token/role are not re-read here.
+ */
 @Composable
-fun AppNavGraph() {
+fun AppNavGraph(startDestination: String) {
     val navController = rememberNavController()
     val context = LocalContext.current
 
@@ -29,30 +32,16 @@ fun AppNavGraph() {
         entryPoint.tokenDataStore()
     }
 
-    var startDest by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        val token = tokenDataStore.accessToken.first()
-        val role = tokenDataStore.userRole.first()
-        startDest = if (token != null) {
-            when (role) { "NURSE" -> "nurse/main" else -> "patient/main" }
-        } else {
-            "auth/login"
-        }
-    }
-
-    // Watch for session expiry → redirect to login
+    // Watch for session expiry (logout / refresh failure clears token) → redirect to login
     LaunchedEffect(Unit) {
         tokenDataStore.accessToken.collect { token ->
-            if (token == null && startDest != null && startDest != "auth/login") {
+            if (token == null && startDestination != "auth/login") {
                 navController.navigate("auth/login") { popUpTo(0) { inclusive = true } }
             }
         }
     }
 
-    if (startDest == null) return
-
-    NavHost(navController = navController, startDestination = startDest!!) {
+    NavHost(navController = navController, startDestination = startDestination) {
         composable("auth/login") {
             LoginScreen(
                 onLoginSuccess = { role ->

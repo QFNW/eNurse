@@ -2,11 +2,13 @@ package com.enurse.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enurse.app.data.local.datastore.SavedLogin
 import com.enurse.app.data.remote.dto.response.UserResponse
 import com.enurse.app.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,7 +22,9 @@ data class AuthUiState(
     val profileSaved: Boolean = false,
     val passwordChanged: Boolean = false,
     val feedbackSubmitting: Boolean = false,
-    val feedbackSent: Boolean = false
+    val feedbackSent: Boolean = false,
+    val savedLogins: List<SavedLogin> = emptyList(),
+    val rememberMe: Boolean = false
 )
 
 @HiltViewModel
@@ -31,17 +35,37 @@ class AuthViewModel @Inject constructor(
     private val _state = MutableStateFlow(AuthUiState())
     val state: StateFlow<AuthUiState> = _state
 
-    fun login(login: String, password: String) {
+    init {
+        // Login history survives logout — keep collecting the flows
         viewModelScope.launch {
-            _state.value = AuthUiState(isLoading = true)
+            authRepository.savedLogins.collect { list ->
+                _state.update { it.copy(savedLogins = list) }
+            }
+        }
+        viewModelScope.launch {
+            authRepository.rememberMe.collect { remember ->
+                _state.update { it.copy(rememberMe = remember) }
+            }
+        }
+    }
+
+    fun login(login: String, password: String, rememberMe: Boolean) {
+        viewModelScope.launch {
+            // copy() not whole-object rebuild: savedLogins/rememberMe must survive
+            _state.update { it.copy(isLoading = true, error = null, success = false) }
             authRepository.login(login, password)
                 .onSuccess { res ->
-                    _state.value = AuthUiState(success = true, userRole = res.user.role)
+                    authRepository.saveLoginHistory(login, if (rememberMe) password else null, rememberMe)
+                    _state.update { it.copy(isLoading = false, success = true, userRole = res.user.role) }
                 }
                 .onFailure { e ->
-                    _state.value = AuthUiState(error = e.message ?: "登录失败")
+                    _state.update { it.copy(isLoading = false, error = e.message ?: "登录失败") }
                 }
         }
+    }
+
+    fun removeSavedLogin(login: String) {
+        viewModelScope.launch { authRepository.removeLoginHistory(login) }
     }
 
     fun sendCode(email: String) {
@@ -59,23 +83,23 @@ class AuthViewModel @Inject constructor(
 
     fun register(username: String, displayName: String, email: String, password: String, role: String, code: String) {
         viewModelScope.launch {
-            _state.value = AuthUiState(isLoading = true)
+            _state.update { it.copy(isLoading = true, error = null, success = false) }
             authRepository.register(username, displayName, email, password, role, code)
                 .onSuccess { res ->
-                    _state.value = AuthUiState(success = true, userRole = res.user.role)
+                    _state.update { it.copy(isLoading = false, success = true, userRole = res.user.role) }
                 }
                 .onFailure { e ->
-                    _state.value = AuthUiState(error = e.message ?: "注册失败")
+                    _state.update { it.copy(isLoading = false, error = e.message ?: "注册失败") }
                 }
         }
     }
 
     fun deleteAccount() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
+            _state.update { it.copy(isLoading = true) }
             authRepository.deleteAccount()
-                .onSuccess { _state.value = AuthUiState(success = true, userRole = null) }
-                .onFailure { e -> _state.value = _state.value.copy(isLoading = false, error = e.message ?: "注销失败") }
+                .onSuccess { _state.update { it.copy(isLoading = false, success = true, userRole = null) } }
+                .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.message ?: "注销失败") } }
         }
     }
 

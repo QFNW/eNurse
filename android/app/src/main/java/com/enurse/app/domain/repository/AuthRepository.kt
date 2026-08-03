@@ -1,7 +1,9 @@
 package com.enurse.app.domain.repository
 
+import com.enurse.app.data.local.datastore.SavedLogin
 import com.enurse.app.data.remote.dto.response.AuthResponse
 import com.enurse.app.data.remote.dto.response.UserResponse
+import kotlinx.coroutines.flow.Flow
 
 interface AuthRepository {
     suspend fun sendCode(email: String): Result<String>
@@ -14,4 +16,10 @@ interface AuthRepository {
     suspend fun submitFeedback(content: String): Result<String>
     suspend fun deleteAccount(): Result<String>
     suspend fun logout()
+
+    // Login history (remember-password / frequent accounts)
+    val savedLogins: Flow<List<SavedLogin>>
+    val rememberMe: Flow<Boolean>
+    suspend fun saveLoginHistory(login: String, password: String?, rememberMe: Boolean)
+    suspend fun removeLoginHistory(login: String)
 }

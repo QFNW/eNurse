@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,6 +7,17 @@ plugins {
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
     id("org.jetbrains.kotlin.plugin.serialization")
+}
+
+// Release keystore + API URL come from android/local.properties (gitignored):
+//   keystore.path=app/enurse-release.keystore
+//   keystore.storePassword=...
+//   keystore.alias=enurse
+//   keystore.keyPassword=...
+//   apiBaseUrl=https://your-domain/api/v1/   (release only; default placeholder)
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
@@ -20,10 +33,30 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            // Path is relative to the project root (android/), e.g. "app/enurse-release.keystore"
+            storeFile = rootProject.file(localProps.getProperty("keystore.path") ?: "app/enurse-release.keystore")
+            storePassword = localProps.getProperty("keystore.storePassword")
+            keyAlias = localProps.getProperty("keystore.alias") ?: "enurse"
+            keyPassword = localProps.getProperty("keystore.keyPassword")
+        }
+    }
+
     buildTypes {
+        debug {
+            // Android emulator → host machine
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3000/api/v1/\"")
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                "\"${localProps.getProperty("apiBaseUrl") ?: "https://enurse.ccwu.cc/api/v1/"}\"",
+            )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -38,6 +71,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -94,5 +128,7 @@ dependencies {
 
     // Core
     implementation("androidx.core:core-ktx:1.15.0")
+    // Splash screen (AndroidX compat for API 26+, native API 31+)
+    implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("com.google.code.gson:gson:2.11.0")
 }

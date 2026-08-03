@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.eNurse" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Cold-start splash: plain cyan background, NO icon (a masked circular icon
+         looked wrong; the full brand logo is shown by BrandSplashScreen right after).
+         Background equals the top of the brand page's vertical gradient for a
+         seamless handover: #7AE2EA. -->
+    <style name="Theme.eNurse.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#7AE2EA</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/transparent_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.eNurse</item>
+    </style>
 </resources>

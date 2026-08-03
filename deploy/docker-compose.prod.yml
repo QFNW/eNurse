@@ -1,0 +1,61 @@
+# eNurse production stack — single-machine deployment (BT Panel variant)
+# Web (web-admin static + HTTPS) is served by BT Panel's nginx on the host;
+# this compose runs only postgres + redis + server. Server exposes 127.0.0.1:3000
+# for BT nginx to proxy /api to.
+# Usage: cd deploy && docker compose --env-file .env.prod up -d --build
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-enurse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-enurse_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-enurse}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-enurse} -d ${POSTGRES_DB:-enurse}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  server:
+    build:
+      context: ../server
+    restart: unless-stopped
+    env_file: .env.prod
+    ports:
+      # Loopback only — BT Panel nginx (host process) proxies /api to this.
+      # Never expose to 0.0.0.0: HTTPS/termination lives in BT nginx.
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

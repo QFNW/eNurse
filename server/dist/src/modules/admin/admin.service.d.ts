@@ -154,11 +154,11 @@ export declare class AdminService {
                 email: string;
                 displayName: string;
                 nickname: string | null;
-            };
+            } | null;
         } & {
             id: string;
             createdAt: Date;
-            userId: string;
+            userId: string | null;
             content: string;
         })[];
         total: number;

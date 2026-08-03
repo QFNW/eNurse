@@ -1,5 +1,6 @@
 package com.enurse.app.di
 
+import com.enurse.app.BuildConfig
 import com.enurse.app.data.remote.api.*
 import com.enurse.app.data.remote.interceptor.AuthInterceptor
 import dagger.Module
@@ -17,7 +18,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "http://10.0.2.2:3000/api/v1/" // Android emulator localhost
+    // Debug → emulator loopback; Release → production domain (see app/build.gradle.kts)
+    private const val BASE_URL = BuildConfig.API_BASE_URL
 
     @Provides
     @Singleton

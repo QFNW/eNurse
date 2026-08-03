@@ -1,5 +1,7 @@
 package com.enurse.app.data.repository
 
+import com.enurse.app.data.local.datastore.LoginHistoryDataStore
+import com.enurse.app.data.local.datastore.SavedLogin
 import com.enurse.app.data.local.datastore.TokenDataStore
 import com.enurse.app.data.remote.api.AuthApi
 import com.enurse.app.data.remote.api.UserApi
@@ -8,12 +10,15 @@ import com.enurse.app.data.remote.dto.request.RegisterRequest
 import com.enurse.app.data.remote.dto.response.AuthResponse
 import com.enurse.app.data.remote.dto.response.UserResponse
 import com.enurse.app.domain.repository.AuthRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
     private val userApi: UserApi,
-    private val tokenDataStore: TokenDataStore
+    private val tokenDataStore: TokenDataStore,
+    private val loginHistoryDataStore: LoginHistoryDataStore
 ) : AuthRepository {
 
     override suspend fun sendCode(email: String): Result<String> =
@@ -72,5 +77,30 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun logout() {
         tokenDataStore.clear()
+    }
+
+    override val savedLogins: Flow<List<SavedLogin>> get() = loginHistoryDataStore.savedLogins
+    override val rememberMe: Flow<Boolean> get() = loginHistoryDataStore.rememberMe
+
+    override suspend fun saveLoginHistory(login: String, password: String?, rememberMe: Boolean) {
+        // Read outside edit {} — reading DataStore.data inside edit deadlocks
+        val current = loginHistoryDataStore.savedLogins.first()
+        val updated = (
+            listOf(SavedLogin(login, password, System.currentTimeMillis()))
+                + current.filterNot { it.login == login }
+            ).take(MAX_SAVED_LOGINS)
+        loginHistoryDataStore.saveAll(updated, rememberMe)
+    }
+
+    override suspend fun removeLoginHistory(login: String) {
+        val current = loginHistoryDataStore.savedLogins.first()
+        loginHistoryDataStore.saveAll(
+            current.filterNot { it.login == login },
+            loginHistoryDataStore.rememberMe.first()
+        )
+    }
+
+    private companion object {
+        const val MAX_SAVED_LOGINS = 5
     }
 }

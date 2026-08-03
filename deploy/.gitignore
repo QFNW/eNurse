@@ -1,0 +1,2 @@
+# Production secrets — never commit. Copy from .env.prod.example on the server.
+.env.prod

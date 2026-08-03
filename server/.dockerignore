@@ -1,0 +1,12 @@
+node_modules
+dist
+generated
+coverage
+.env
+.env.prod
+*.log
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+README.md
