@@ -5,7 +5,7 @@
 ## 一、架构
 
 ```
-云服务器 (Ubuntu 22.04, 2C2G+, 宝塔面板)
+云服务器 (Alibaba Cloud Linux 3, x86_64, 2C2G+, 宝塔面板)
 ├── 宝塔 nginx :443 HTTPS (一键 Let's Encrypt) + :80 → 301
 │   ├── /           → /www/wwwroot/enurse  (web-admin vite 产物, SPA)
 │   ├── /assets/    → 静态资源 30d 缓存
@@ -26,23 +26,40 @@
 | 内存 | 2G 够用（Node ~400MB + PG ~300MB + Redis ~100MB + 宝塔 ~200MB + 系统 ~500MB）；**不要装宝塔的 MySQL**（白占 300–500MB）。计划接入微信 Bot 时再升 4G |
 | 带宽 | 3–5 Mbps 足够（API 无大文件，反馈无附件） |
 | 费用 | 轻量 2C2G 约 ¥30–70/月；2C4G 约 ¥50–100/月（新用户常有折扣） |
-| 域名 | 任意注册商域名，**国内服务器必须 ICP 备案**（域名 + 服务器同一云厂商流程最简单，约 1–2 周）；不想备案可选香港轻量（免备案，延迟略高） |
+| 域名 | 任意注册商域名，**国内机房服务器必须 ICP 备案**（域名 + 服务器同一云厂商流程最简单，约 1–2 周，未备案域名公网访问会被云厂商拦截，手机 App 常表现为 connection reset）。**不想备案直接选海外地域**：腾讯云/阿里云香港、首尔等均免备案，国内延迟 20–100ms，对本 App 无感。**海外地域可复用同一个域名**（A 记录指向海外 IP 即可，证书在宝塔重新申请一次） |
 | 证书 | 宝塔面板内 Let's Encrypt 一键申请 + 自动续期（**无需手动管理证书文件**） |
 
 ## 三、部署步骤
 
 ### 1. 安装宝塔面板
 
-服务器系统装 Ubuntu 22.04，SSH 登录后按宝塔官网一键脚本安装（`bt.cn`）。装完后用浏览器打开面板地址。
+服务器系统为 **Alibaba Cloud Linux 3**（RHEL/CentOS 8 兼容，包管理用 `dnf`）。SSH 登录后按宝塔官网一键脚本安装（`bt.cn`，Alibaba Cloud Linux 走 CentOS 系脚本）：
+
+```bash
+curl -sSO https://download.bt.cn/install/install_panel.sh && bash install_panel.sh
+```
+
+装完后用浏览器打开面板地址（默认 8888 端口）。
 
 ### 2. 安装 Docker
 
-宝塔软件商店有「Docker 管理器」插件（需付费几块钱），或 SSH 命令行安装（免费，推荐）：
+宝塔软件商店有「Docker 管理器」插件（需付费几块钱），或 SSH 命令行安装。**国内服务器走阿里云源，腾讯云服务器走腾讯云源**（get.docker.com 直连可能超时）：
 
 ```bash
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER && newgrp docker
+# 阿里云服务器：阿里云 docker-ce 源
+dnf install -y dnf-plugins-core
+dnf config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+
+# 腾讯云服务器：腾讯云 docker-ce 源（二选一，按服务器厂商）
+dnf config-manager --add-repo https://mirrors.cloud.tencent.com/docker-ce/linux/centos/docker-ce.repo
+
+# 安装（共用）
+dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+systemctl enable --now docker
+docker compose version   # 确认 compose 插件（deploy.sh 依赖）
 ```
+
+**拉镜像超时**（国内常见）配置镜像加速器：阿里云 → `registry-mirrors` 用阿里云容器镜像服务专属地址；腾讯云 → `{"registry-mirrors": ["https://mirror.ccs.tencentyun.com"]}` 写入 `/etc/docker/daemon.json` 后 `systemctl restart docker`。海外地域一般不用配。
 
 > 宝塔自带 nginx 与 Docker 无关，互不影响。**不要**在宝塔里再装 MySQL（我们用 PostgreSQL 容器）。
 
@@ -69,18 +86,22 @@ cp deploy/.env.prod.example deploy/.env.prod
 | `ADMIN_PASSWORD_HASH` | `node -e "const b=require('bcrypt');b.hash('你的管理员密码',12).then(h=>console.log(h))"`（server 目录下运行） |
 | `CORS_ORIGIN` | 模板已预填 `https://enurse.ccwu.cc`；换域名才需改 |
 
+> **⚠️ 关键坑：`ADMIN_PASSWORD_HASH` 里每个 `$` 必须写成 `$$`**。bcrypt 哈希形如 `$2b$12$...`，docker compose 的 env 文件会把 `$xxx` 当变量插值，导致哈希被清空、管理员密码失效（启动时 `compose config` 会报 `The "LqH..." variable is not set` 警告）。正确写法：`ADMIN_PASSWORD_HASH=$$2b$$12$$LqH...`。其余变量值里不要出现裸 `$`。
+>
 > 注意：`NODE_ENV=production` 下 JWT 密钥与管理员哈希缺一不可，否则服务端拒绝启动/管理员无法登录。
 
 ### 5. 宝塔创建站点 + 反代配置 + SSL
 
 1. 域名 A 记录解析到服务器公网 IP，等待生效
 2. 宝塔 → **网站 → 添加站点**：填域名，PHP 版本选「纯静态」，根目录改为 `/www/wwwroot/enurse`（与 deploy.sh 的 `WEB_ROOT` 一致）
-3. 网站 → 设置 → **配置文件**：把 [deploy/nginx/bt-site.conf](deploy/nginx/bt-site.conf) 中注释以外的内容粘贴进 `server { }` 块内，**替换默认的 `location /` 块**
+3. 网站 → 设置 → **配置文件**：把 [deploy/nginx/bt-site.conf](deploy/nginx/bt-site.conf) 中注释以外的内容粘贴进 `server { }` 块内，**替换默认的 `location /` 块**。**`location /api/` 必须写成 `location ^~ /api/`**——宝塔默认配置里有 `location ~ .*\.(js|css)?$` 正则缓存规则，nginx 正则优先级高于普通前缀，会把 `/api/docs/swagger-ui-bundle.js` 这类请求劫持为静态文件 404，导致 Swagger 白屏（症状：`/api/docs` 页面空白、直连 127.0.0.1:3000 却 200）。`^~` 让前缀匹配不再回退正则
 4. 网站 → SSL → 申请 **Let's Encrypt 证书**（一键，自动续期，自动配 80→443 跳转）
 
 > 证书由宝塔托管，不需要像容器方案那样手动拷贝 `fullchain.pem/privkey.pem`。
 
 ### 6. 一键部署
+
+> **前置：服务器需要 Node.js 22 + npm**（deploy.sh 要构建 web-admin）。宝塔 → 软件商店 → 「Node.js 版本管理器」→ 安装 22.x，装完把 `/www/server/nodejs/v22.x.x/bin` 加入 PATH（`echo 'export PATH=/www/server/nodejs/v22.x.x/bin:$PATH' >> ~/.bashrc`）。不装则报 `npm: command not found`。
 
 ```bash
 bash deploy/scripts/deploy.sh
