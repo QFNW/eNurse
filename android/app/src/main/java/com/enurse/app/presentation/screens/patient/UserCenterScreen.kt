@@ -14,9 +14,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.enurse.app.BuildConfig
 import com.enurse.app.presentation.theme.*
 import com.enurse.app.presentation.viewmodel.AuthViewModel
+import com.enurse.app.update.UpdateChecker
+import com.enurse.app.update.VersionInfo
 import kotlinx.coroutines.launch
 
 @Composable
@@ -29,8 +33,28 @@ fun UserCenterScreen(
 ) {
     val viewModel: AuthViewModel = hiltViewModel()
     val authState by viewModel.state.collectAsState()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var checkingUpdate by remember { mutableStateOf(false) }
+    var updateInfo by remember { mutableStateOf<VersionInfo?>(null) }
+    var downloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0f) }
+
+    fun checkForUpdate() {
+        scope.launch {
+            checkingUpdate = true
+            val latest = UpdateChecker.checkVersion(context.applicationContext)
+            checkingUpdate = false
+            when {
+                latest == null ->
+                    snackbarHostState.showSnackbar("检查更新失败：${UpdateChecker.lastError ?: "未知错误"}")
+                latest.versionCode <= BuildConfig.VERSION_CODE ->
+                    snackbarHostState.showSnackbar("已是最新版本 (${BuildConfig.VERSION_NAME})")
+                else -> updateInfo = latest
+            }
+        }
+    }
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -130,6 +154,13 @@ fun UserCenterScreen(
                     MenuRow("🚪", "退出登录", onClick = { showLogoutConfirm = true })
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = CardBorder)
                     MenuRow("🗑️", "注销账号", onClick = { showDeleteConfirm = true })
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = CardBorder)
+                    MenuRow(
+                        "📱", "版本更新", onClick = { checkForUpdate() },
+                        trailing = {
+                            if (checkingUpdate) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Primary)
+                        }
+                    )
                 }
             }
 
@@ -261,6 +292,62 @@ fun UserCenterScreen(
         )
     }
 
+    // Version update dialog（下载中显示进度；状态更新在 snackbar 之前，遵守项目规则）
+    val info = updateInfo
+    if (info != null) {
+        AlertDialog(
+            onDismissRequest = { if (!downloading) updateInfo = null },
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("发现新版本 v${info.versionName}", fontWeight = FontWeight.SemiBold) },
+            text = {
+                if (downloading) {
+                    Column {
+                        Text("正在下载更新...", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        LinearProgressIndicator(
+                            progress = { downloadProgress },
+                            modifier = Modifier.fillMaxWidth().height(6.dp),
+                            color = Primary,
+                            trackColor = PrimaryBg
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("${(downloadProgress * 100).toInt()}%", fontSize = 13.sp, color = TextSecondary)
+                    }
+                } else {
+                    Column {
+                        Text("当前版本 ${BuildConfig.VERSION_NAME}", fontSize = 13.sp, color = TextSecondary)
+                        info.changelog?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(it, fontSize = 14.sp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (!downloading) {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                downloading = true
+                                val ok = UpdateChecker.downloadAndInstall(
+                                    context.applicationContext, info
+                                ) { p -> downloadProgress = p }
+                                downloading = false
+                                updateInfo = null
+                                if (!ok) snackbarHostState.showSnackbar("更新下载失败，请稍后重试")
+                            }
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                    ) { Text("立即更新") }
+                }
+            },
+            dismissButton = {
+                if (!downloading) TextButton(onClick = { updateInfo = null }) { Text("取消") }
+            }
+        )
+    }
+
     // Delete account confirm
     if (showDeleteConfirm) {
         AlertDialog(
@@ -281,7 +368,12 @@ fun UserCenterScreen(
 }
 
 @Composable
-private fun MenuRow(icon: String, label: String, onClick: () -> Unit) {
+private fun MenuRow(
+    icon: String,
+    label: String,
+    onClick: () -> Unit,
+    trailing: @Composable (() -> Unit)? = null
+) {
     TextButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
@@ -293,7 +385,11 @@ private fun MenuRow(icon: String, label: String, onClick: () -> Unit) {
             Text(icon, fontSize = 18.sp)
             Spacer(modifier = Modifier.width(12.dp))
             Text(label, fontSize = 15.sp, color = TextPrimary, modifier = Modifier.weight(1f))
-            Text("→", fontSize = 15.sp, color = TextHint)
+            if (trailing != null) {
+                trailing()
+            } else {
+                Text("→", fontSize = 15.sp, color = TextHint)
+            }
         }
     }
 }

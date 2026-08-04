@@ -14,8 +14,12 @@ import androidx.compose.ui.unit.sp
 import com.enurse.app.data.remote.dto.response.MedicationResponse
 import com.enurse.app.domain.repository.MedicationRepository
 import com.enurse.app.presentation.theme.*
+import com.enurse.app.reminder.ReminderScheduler
 import dagger.hilt.android.EntryPointAccessors
 import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
 import dagger.hilt.EntryPoint
@@ -50,6 +54,7 @@ fun MedicationScreen(onGoBack: () -> Unit) {
     var scheduleInterval by remember { mutableStateOf("8") }
     var showRecord by remember { mutableStateOf<MedicationResponse?>(null) }
     var recordNotes by remember { mutableStateOf("") }
+    var showExactAlarmDialog by remember { mutableStateOf(false) }
     val dateFormat = remember { java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US) }
 
     suspend fun refreshMeds() {
@@ -190,7 +195,12 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                             }
                             TextButton(onClick = {
                                 scope.launch {
-                                    try { repo.deleteMedication(med.id); refreshMeds(); snackbarHostState.showSnackbar("已删除") }
+                                    try {
+                                        repo.deleteMedication(med.id)
+                                        refreshMeds()
+                                        ReminderScheduler.refresh(context.applicationContext)
+                                        snackbarHostState.showSnackbar("已删除")
+                                    }
                                     catch (e: Exception) { snackbarHostState.showSnackbar("删除失败: ${e.message}") }
                                 }
                             }) { Text("删除", color = AlertRed, fontSize = 13.sp) }
@@ -322,12 +332,40 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                         val med = medications.find { it.id == medId }
                         med?.schedules?.filter { !it.isLocked }?.forEach { s -> try { repo.deleteSchedule(s.id) } catch (_: Exception) {} }
                         repo.createSchedule(medId, scheduleType, times, interval)
-                            .onSuccess { refreshMeds(); snackbarHostState.showSnackbar("✓ 提醒已设置") }
+                            .onSuccess {
+                                refreshMeds()
+                                ReminderScheduler.refresh(context.applicationContext)
+                                if (!ReminderScheduler.canScheduleExact(context)) showExactAlarmDialog = true
+                                snackbarHostState.showSnackbar("✓ 提醒已设置")
+                            }
                             .onFailure { snackbarHostState.showSnackbar("设置失败: ${it.message}") }
                     }
                 }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = Primary)) { Text("保存") }
             },
             dismissButton = { TextButton(onClick = { showSchedule = null }) { Text("取消") } }
+        )
+    }
+
+    // 精确闹钟权限引导（Android 12+ 默认可能未授权，提醒会延迟）
+    if (showExactAlarmDialog) {
+        AlertDialog(
+            onDismissRequest = { showExactAlarmDialog = false },
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("开启精确提醒", fontWeight = FontWeight.SemiBold) },
+            text = { Text("系统限制了闹钟的精确触发（提醒可能延迟几分钟）。建议在系统设置中允许「闹钟和提醒」，确保按时提醒。", fontSize = 14.sp) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExactAlarmDialog = false
+                        context.startActivity(
+                            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}"))
+                        )
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) { Text("去开启") }
+            },
+            dismissButton = { TextButton(onClick = { showExactAlarmDialog = false }) { Text("取消") } }
         )
     }
 }

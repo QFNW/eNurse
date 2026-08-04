@@ -8,9 +8,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.enurse.app.presentation.theme.*
 import com.enurse.app.presentation.viewmodel.BmViewModel
+import com.enurse.app.reminder.ReminderScheduler
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -20,13 +27,19 @@ fun BmReminderScreen(
     bmViewModel: BmViewModel = hiltViewModel()
 ) {
     val bmState by bmViewModel.state.collectAsState()
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var showExactAlarmDialog by remember { mutableStateOf(false) }
 
     // Save feedback: success → snackbar (state update happens before the snackbar
     // suspends, per project rule); failure → red text + snackbar.
     LaunchedEffect(bmState.lastSaveAt) {
-        if (bmState.lastSaveAt > 0L) snackbarHostState.showSnackbar("保存成功")
+        if (bmState.lastSaveAt > 0L) {
+            ReminderScheduler.refresh(context.applicationContext)
+            if (!ReminderScheduler.canScheduleExact(context)) showExactAlarmDialog = true
+            snackbarHostState.showSnackbar("保存成功")
+        }
     }
     LaunchedEffect(bmState.error) {
         bmState.error?.let { snackbarHostState.showSnackbar(it) }
@@ -81,6 +94,29 @@ fun BmReminderScreen(
                 }
             }
         }
+    }
+
+    // 精确闹钟权限引导（Android 12+ 默认可能未授权，提醒会延迟）
+    if (showExactAlarmDialog) {
+        AlertDialog(
+            onDismissRequest = { showExactAlarmDialog = false },
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("开启精确提醒", fontWeight = FontWeight.SemiBold) },
+            text = { Text("系统限制了闹钟的精确触发（提醒可能延迟几分钟）。建议在系统设置中允许「闹钟和提醒」，确保按时提醒。", fontSize = 14.sp) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExactAlarmDialog = false
+                        context.startActivity(
+                            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}"))
+                        )
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) { Text("去开启") }
+            },
+            dismissButton = { TextButton(onClick = { showExactAlarmDialog = false }) { Text("取消") } }
+        )
     }
 }
 

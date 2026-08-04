@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import com.enurse.app.MainActivity
 import com.enurse.app.data.remote.api.AlertApi
 import com.enurse.app.data.remote.dto.response.AlertResponse
+import com.enurse.app.reminder.ReminderScheduler
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -79,6 +80,12 @@ object AlertPollService {
     }
 
     private fun showNotification(context: Context, alert: AlertResponse) {
+        // 双响抑制：本地闹钟刚响过（60s 内）时，跳过服务端同一提醒的通知（避免重复响铃）
+        val suppressType = ReminderScheduler.mapAlertType(alert.type)
+        if (suppressType != null && ReminderScheduler.recentlyFiredWithin(suppressType, 60_000)) {
+            Log.i(TAG, "Suppressed notification for ${alert.type} (local alarm just fired)")
+            return
+        }
         try {
             val intent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

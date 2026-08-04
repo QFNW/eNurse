@@ -124,7 +124,30 @@ curl -i https://你的域名/api/v1/admin/stats | head -5
 
 ## 四、Android release APK（发布给使用者）
 
-见 `docs/android-release.md`（本地构建，一次完成；产物 `app-release.apk` 可上传 GitHub Release 分发）。
+见 `docs/android-release.md`（本地构建，一次完成；产物 `app-release.apk`）。
+
+App 内「我的 → 版本更新」从服务器静态目录检查更新。发布步骤：
+
+1. **构建**：`cd android && ./gradlew :app:assembleRelease`（产物 `android/app/build/outputs/apk/release/app-release.apk`）
+2. **上传 APK**：宝塔文件管理 → 站点根目录 `/www/wwwroot/enurse/apk/` 上传 `app-release.apk`（若目录不存在先创建）
+3. **更新 version.json**（同目录，版本号与构建一致）：
+
+```json
+{
+  "versionCode": 1,
+  "versionName": "1.0.0",
+  "apkUrl": "https://enurse.ccwu.cc/apk/app-release.apk",
+  "changelog": "更新说明（可选）"
+}
+```
+
+> **版本号规则**：发新版时先在 `android/app/build.gradle.kts` 递增 `versionCode`（+1）并同步 `versionName`，再构建；version.json 与之一致。App 侧 `versionCode` 大于本地版本才提示更新。
+>
+> nginx 无需额外配置（`location /` 的 `try_files` 会直接返回 `/apk/` 下的静态文件）。
+
+4. **验证**：浏览器访问 `https://enurse.ccwu.cc/apk/version.json` 返回 JSON；`https://enurse.ccwu.cc/apk/app-release.apk` 可下载。
+
+> 用户手机安装时需允许「安装未知应用」（系统安装器会自动引导，正常流程）。
 
 ## 五、备份
 

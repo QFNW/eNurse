@@ -4,6 +4,7 @@ import android.app.Application
 import com.enurse.app.data.local.datastore.TokenDataStore
 import com.enurse.app.presentation.navigation.TokenDataStoreEntryPoint
 import com.enurse.app.presentation.polling.AlertPollService
+import com.enurse.app.reminder.ReminderScheduler
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -27,12 +28,15 @@ class eNurseApp : Application() {
 
         // Poll alerts only while logged in: token present → start,
         // cleared (logout / refresh failure) → stop. start() is idempotent.
+        // Local alarms follow the same lifecycle: login → schedule, logout → cancel.
         appScope.launch {
             tokenDataStore.accessToken.collect { token ->
                 if (token != null) {
                     AlertPollService.start(this@eNurseApp)
+                    ReminderScheduler.refresh(this@eNurseApp)
                 } else {
                     AlertPollService.stop()
+                    ReminderScheduler.cancelAll(this@eNurseApp)
                 }
             }
         }
