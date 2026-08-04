@@ -12,7 +12,7 @@ interface MedicationApi {
     suspend fun getAll(): List<MedicationResponse>
 
     @PUT("medications/{id}")
-    suspend fun update(@Path("id") id: String, @Body body: Map<String, Any>): MedicationResponse
+    suspend fun update(@Path("id") id: String, @Body body: Map<String, @JvmSuppressWildcards Any>): MedicationResponse
 
     @DELETE("medications/{id}")
     suspend fun delete(@Path("id") id: String)

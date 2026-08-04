@@ -31,5 +31,8 @@ interface BmApi {
     suspend fun getSettings(): BmSettingsResponse
 
     @PUT("bm/settings")
-    suspend fun updateSettings(@Body body: Map<String, Any>): BmSettingsResponse
+    // @JvmSuppressWildcards: plain `Map<String, Any>` compiles to `Map<String, ?>`,
+    // which Retrofit rejects at runtime ("parameter type must not include a
+    // type variable or wildcard") before the request is ever sent.
+    suspend fun updateSettings(@Body body: Map<String, @JvmSuppressWildcards Any>): BmSettingsResponse
 }

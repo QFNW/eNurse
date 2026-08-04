@@ -18,7 +18,8 @@ data class BmUiState(
     val isLoading: Boolean = false,
     val selectedDay: String? = null,
     val selectedDayRecords: List<com.enurse.app.data.remote.dto.response.BmRecordResponse> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val lastSaveAt: Long = 0L   // bumped on every successful settings save
 )
 
 @HiltViewModel
@@ -61,7 +62,13 @@ class BmViewModel @Inject constructor(
     fun updateSettings(intervalDays: Int?, reminderTime: String?, isEnabled: Boolean?) {
         viewModelScope.launch {
             bmRepository.updateSettings(intervalDays, reminderTime, isEnabled)
-                .onSuccess { _state.value = _state.value.copy(settings = it) }
+                .onSuccess {
+                    _state.value = _state.value.copy(
+                        settings = it,
+                        lastSaveAt = System.currentTimeMillis(),
+                        error = null
+                    )
+                }
                 .onFailure { _state.value = _state.value.copy(error = it.message) }
         }
     }

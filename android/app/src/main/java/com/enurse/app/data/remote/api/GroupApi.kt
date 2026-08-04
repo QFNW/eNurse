@@ -30,13 +30,13 @@ interface GroupApi {
     suspend fun getMemberEvents(
         @Path("id") id: String,
         @Path("userId") userId: String
-    ): Map<String, List<Any>>
+    ): Map<String, @JvmSuppressWildcards List<@JvmSuppressWildcards Any>>
 
     @GET("groups/{id}/members/{userId}/strategies")
     suspend fun getMemberStrategies(
         @Path("id") id: String,
         @Path("userId") userId: String
-    ): Map<String, Any>
+    ): Map<String, @JvmSuppressWildcards Any>
 
     @PUT("groups/{id}/members/{userId}/strategies/lock")
     suspend fun toggleLock(

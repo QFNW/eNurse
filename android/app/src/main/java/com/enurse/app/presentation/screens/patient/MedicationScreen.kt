@@ -1,6 +1,5 @@
 package com.enurse.app.presentation.screens.patient
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -166,7 +165,21 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                                 modifier = Modifier.height(40.dp)
                             ) { Text("打卡", fontSize = 14.sp) }
                             OutlinedButton(
-                                onClick = { showSchedule = med.id },
+                                onClick = {
+                                    showSchedule = med.id
+                                    // Prefill from the existing schedule so re-editing
+                                    // shows the saved values, not the hardcoded default
+                                    val s = med.schedules?.firstOrNull()
+                                    if (s != null) {
+                                        scheduleType = s.scheduleType
+                                        scheduleTimes = (s.fixedTimes ?: emptyList()).joinToString(",")
+                                        scheduleInterval = s.intervalHours?.toString() ?: "8"
+                                    } else {
+                                        scheduleType = "FIXED_TIME"
+                                        scheduleTimes = "08:00,20:00"
+                                        scheduleInterval = "8"
+                                    }
+                                },
                                 shape = RoundedCornerShape(28.dp),
                                 modifier = Modifier.height(40.dp)
                             ) {
@@ -275,23 +288,24 @@ fun MedicationScreen(onGoBack: () -> Unit) {
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryBg, selectedLabelColor = Primary))
                     }
                     Spacer(modifier = Modifier.height(14.dp))
-                    AnimatedVisibility(visible = scheduleType == "FIXED_TIME") {
-                        OutlinedTextField(value = scheduleTimes, onValueChange = { scheduleTimes = it },
-                            label = { Text("时间 (逗号分隔, 如 08:00,20:00)") }, modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary))
-                    }
-                    AnimatedVisibility(visible = scheduleType == "INTERVAL") {
-                        OutlinedTextField(value = scheduleInterval, onValueChange = { scheduleInterval = it },
-                            label = { Text("每 N 小时") }, modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary))
-                    }
+                    // Single TextField bound to the active schedule type (project rule:
+                    // never switch TextFields with AnimatedVisibility — input state would be lost)
+                    OutlinedTextField(
+                        value = if (scheduleType == "FIXED_TIME") scheduleTimes else scheduleInterval,
+                        onValueChange = { if (scheduleType == "FIXED_TIME") scheduleTimes = it else scheduleInterval = it },
+                        label = { Text(if (scheduleType == "FIXED_TIME") "时间 (逗号分隔, 如 08:00,20:00)" else "每 N 小时") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary)
+                    )
                 }
             },
             confirmButton = {
                 Button(onClick = {
                     val medId = showSchedule!!
-                    // 解析输入
-                    val times = if (scheduleType == "FIXED_TIME") scheduleTimes.split(",").map { it.trim() }.filter { it.isNotEmpty() } else emptyList()
+                    // 解析输入（全角冒号/逗号归一为半角，用户常输入中文标点）
+                    val normalized = scheduleTimes.replace('：', ':').replace('，', ',')
+                    val times = if (scheduleType == "FIXED_TIME") normalized.split(",").map { it.trim() }.filter { it.isNotEmpty() } else emptyList()
                     val interval = if (scheduleType == "INTERVAL") scheduleInterval.toDoubleOrNull() else null
                     // 校验
                     if (scheduleType == "FIXED_TIME" && (times.isEmpty() || !times.all { it.matches(Regex("^\\d{2}:\\d{2}$")) })) {

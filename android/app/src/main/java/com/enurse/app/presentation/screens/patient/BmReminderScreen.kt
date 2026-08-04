@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.enurse.app.presentation.theme.*
 import com.enurse.app.presentation.viewmodel.BmViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,9 +20,21 @@ fun BmReminderScreen(
     bmViewModel: BmViewModel = hiltViewModel()
 ) {
     val bmState by bmViewModel.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Save feedback: success → snackbar (state update happens before the snackbar
+    // suspends, per project rule); failure → red text + snackbar.
+    LaunchedEffect(bmState.lastSaveAt) {
+        if (bmState.lastSaveAt > 0L) snackbarHostState.showSnackbar("保存成功")
+    }
+    LaunchedEffect(bmState.error) {
+        bmState.error?.let { snackbarHostState.showSnackbar(it) }
+    }
 
     Scaffold(
         containerColor = Background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("大便提醒", fontWeight = FontWeight.SemiBold) },
