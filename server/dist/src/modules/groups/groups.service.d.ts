@@ -137,6 +137,7 @@ export declare class GroupsService {
         createdAt: Date;
         userId: string;
         type: import("../../../generated/prisma/enums").AlertType;
+        relatedId: string | null;
         message: string;
         isResolved: boolean;
         resolvedAt: Date | null;
@@ -167,6 +168,7 @@ export declare class GroupsService {
             createdAt: Date;
             userId: string;
             type: import("../../../generated/prisma/enums").AlertType;
+            relatedId: string | null;
             message: string;
             isResolved: boolean;
             resolvedAt: Date | null;

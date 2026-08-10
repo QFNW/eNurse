@@ -73,14 +73,16 @@ let AlertEngineService = AlertEngineService_1 = class AlertEngineService {
         const daysText = intervalDays === 1
             ? '今天还未记录大便'
             : `已连续${intervalDays - 1}天未记录大便`;
+        await this.resolvePreviousAlerts(setting.userId, client_1.AlertType.BM_REMINDER, null);
         await this.prisma.alert.create({
             data: {
                 userId: setting.userId,
                 type: client_1.AlertType.BM_REMINDER,
+                relatedId: null,
                 message: `【易护提醒】${daysText}，请及时打卡或联系护理人员。`,
             },
         });
-        await this.notifyGroupNurses(setting.userId, client_1.AlertType.BM_REMINDER, `【易护提醒】${daysText}，请及时打卡或联系护理人员。`);
+        await this.notifyGroupNurses(setting.userId, client_1.AlertType.BM_REMINDER, `【易护提醒】${daysText}，请及时打卡或联系护理人员。`, setting.userId);
         this.logger.log(`BM alert created for user ${setting.userId}`);
     }
     async checkMedicationReminders() {
@@ -151,14 +153,16 @@ let AlertEngineService = AlertEngineService_1 = class AlertEngineService {
         });
         if (existingAlert)
             return;
+        await this.resolvePreviousAlerts(userId, client_1.AlertType.MEDICATION_REMINDER, schedule.medicationId);
         await this.prisma.alert.create({
             data: {
                 userId,
                 type: client_1.AlertType.MEDICATION_REMINDER,
+                relatedId: schedule.medicationId,
                 message: `【易护提醒】请按时服用「${schedule.medication.name}」${schedule.medication.dosage || ''}`,
             },
         });
-        await this.notifyGroupNurses(userId, client_1.AlertType.MEDICATION_REMINDER, `【易护提醒】请按时服用「${schedule.medication.name}」${schedule.medication.dosage || ''}`);
+        await this.notifyGroupNurses(userId, client_1.AlertType.MEDICATION_REMINDER, `【易护提醒】请按时服用「${schedule.medication.name}」${schedule.medication.dosage || ''}`, schedule.medicationId);
         this.logger.log(`Medication alert created for user ${userId}`);
     }
     async cleanupStaleAlerts() {
@@ -186,7 +190,13 @@ let AlertEngineService = AlertEngineService_1 = class AlertEngineService {
             this.logger.log(`Stale alert cleanup: BM=${bmCount.count}, Med=${medCount.count}`);
         }
     }
-    async notifyGroupNurses(patientId, type, message) {
+    async resolvePreviousAlerts(userId, type, relatedId) {
+        await this.prisma.alert.updateMany({
+            where: { userId, type, relatedId, isResolved: false },
+            data: { isResolved: true, resolvedAt: new Date() },
+        });
+    }
+    async notifyGroupNurses(patientId, type, message, relatedId) {
         try {
             const patient = await this.prisma.user.findUnique({
                 where: { id: patientId },
@@ -211,10 +221,12 @@ let AlertEngineService = AlertEngineService_1 = class AlertEngineService {
                     if (notified.has(nurse.userId))
                         continue;
                     notified.add(nurse.userId);
+                    await this.resolvePreviousAlerts(nurse.userId, type, relatedId);
                     await this.prisma.alert.create({
                         data: {
                             userId: nurse.userId,
                             type,
+                            relatedId,
                             message: `【患者：${patient?.displayName || patientId}】${message}`,
                         },
                     });

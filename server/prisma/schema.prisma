@@ -206,6 +206,9 @@ model Alert {
   id          String      @id @default(cuid())
   userId      String
   type        AlertType
+  // 事项维度：药品 = medicationId，大便 = null（每用户仅一个 BM 事项）。
+  // 同一事项的多次提醒只保留最新一条（旧的被自动解决）。
+  relatedId   String?
   message     String
   isResolved  Boolean     @default(false)
   resolvedAt  DateTime?
@@ -214,5 +217,6 @@ model Alert {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isResolved, createdAt])
+  @@index([userId, type, relatedId, isResolved])
   @@map("alerts")
 }

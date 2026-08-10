@@ -67,10 +67,14 @@ export class AlertEngineService {
       ? '今天还未记录大便'
       : `已连续${intervalDays - 1}天未记录大便`;
 
+    // 同一事项只保留最新一条：先解决该用户的旧 BM 提醒，再创建新一条
+    await this.resolvePreviousAlerts(setting.userId, AlertType.BM_REMINDER, null);
+
     await this.prisma.alert.create({
       data: {
         userId: setting.userId,
         type: AlertType.BM_REMINDER,
+        relatedId: null,
         message: `【易护提醒】${daysText}，请及时打卡或联系护理人员。`,
       },
     });
@@ -79,6 +83,8 @@ export class AlertEngineService {
       setting.userId,
       AlertType.BM_REMINDER,
       `【易护提醒】${daysText}，请及时打卡或联系护理人员。`,
+      // BM 副本用患者 ID 作 relatedId：护士同时护理多名患者时按患者区分事项
+      setting.userId,
     );
 
     this.logger.log(`BM alert created for user ${setting.userId}`);
@@ -156,10 +162,14 @@ export class AlertEngineService {
     });
     if (existingAlert) return;
 
+    // 同一事项只保留最新一条：先解决该用户同药品的旧提醒，再创建新一条
+    await this.resolvePreviousAlerts(userId, AlertType.MEDICATION_REMINDER, schedule.medicationId);
+
     await this.prisma.alert.create({
       data: {
         userId,
         type: AlertType.MEDICATION_REMINDER,
+        relatedId: schedule.medicationId,
         message: `【易护提醒】请按时服用「${schedule.medication.name}」${schedule.medication.dosage || ''}`,
       },
     });
@@ -168,6 +178,7 @@ export class AlertEngineService {
       userId,
       AlertType.MEDICATION_REMINDER,
       `【易护提醒】请按时服用「${schedule.medication.name}」${schedule.medication.dosage || ''}`,
+      schedule.medicationId,
     );
 
     this.logger.log(`Medication alert created for user ${userId}`);
@@ -206,10 +217,27 @@ export class AlertEngineService {
   }
 
   /**
+   * 同一事项只保留最新一条提醒：创建新 alert 前，把该用户同事项
+   * （BM：relatedId=null；药品：relatedId=medicationId）的旧未解决 alert 全部解决。
+   */
+  private async resolvePreviousAlerts(
+    userId: string,
+    type: AlertType,
+    relatedId: string | null,
+  ) {
+    await this.prisma.alert.updateMany({
+      where: { userId, type, relatedId, isResolved: false },
+      data: { isResolved: true, resolvedAt: new Date() },
+    });
+  }
+
+  /**
    * 警报投递：为患者所在小组中的护理人员（role=NURSE，跨组去重）各创建一条副本，
    * 护士端轮询 /alerts 即可收到响铃通知。消息带患者姓名便于识别。
+   * relatedId（护士副本的去重维度）：药品 = medicationId（全局唯一，天然含患者维度）；
+   * BM = patientId（护士护理多名患者时按患者区分，否则互相清除）。
    */
-  private async notifyGroupNurses(patientId: string, type: AlertType, message: string) {
+  private async notifyGroupNurses(patientId: string, type: AlertType, message: string, relatedId: string | null) {
     try {
       const patient = await this.prisma.user.findUnique({
         where: { id: patientId },
@@ -235,10 +263,13 @@ export class AlertEngineService {
         for (const nurse of membership.group.members) {
           if (notified.has(nurse.userId)) continue;
           notified.add(nurse.userId);
+          // 护士端同一事项同样只保留最新一条副本
+          await this.resolvePreviousAlerts(nurse.userId, type, relatedId);
           await this.prisma.alert.create({
             data: {
               userId: nurse.userId,
               type,
+              relatedId,
               message: `【患者：${patient?.displayName || patientId}】${message}`,
             },
           });

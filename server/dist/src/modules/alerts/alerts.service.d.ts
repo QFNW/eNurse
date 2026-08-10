@@ -7,6 +7,7 @@ export declare class AlertsService {
         createdAt: Date;
         userId: string;
         type: import("../../../generated/prisma/enums").AlertType;
+        relatedId: string | null;
         message: string;
         isResolved: boolean;
         resolvedAt: Date | null;
@@ -16,6 +17,7 @@ export declare class AlertsService {
         createdAt: Date;
         userId: string;
         type: import("../../../generated/prisma/enums").AlertType;
+        relatedId: string | null;
         message: string;
         isResolved: boolean;
         resolvedAt: Date | null;
