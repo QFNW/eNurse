@@ -218,13 +218,19 @@ export class GroupsService {
       }));
     }
 
-    // Batch alert counts in a single query
-    const memberIds = members.map((m) => m.userId);
-    const alertCounts = await this.prisma.alert.groupBy({
-      by: ['userId'],
-      where: { userId: { in: memberIds }, isResolved: false },
-      _count: { id: true },
-    });
+    // Batch alert counts in a single query — 只统计患者成员的未解决警报：
+    // 护士的 alert 是收到的组内副本（跨组存在），计入成员列表计数会虚高且语义混乱。
+    // 注意：alert 无组维度，患者跨组时计数包含其全部未解决警报（可接受）。
+    const patientIds = members
+      .filter((m) => m.user.role === 'PATIENT')
+      .map((m) => m.userId);
+    const alertCounts = patientIds.length
+      ? await this.prisma.alert.groupBy({
+          by: ['userId'],
+          where: { userId: { in: patientIds }, isResolved: false },
+          _count: { id: true },
+        })
+      : [];
     const countMap = new Map(
       alertCounts.map((a) => [a.userId, a._count.id]),
     );

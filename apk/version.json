@@ -1,6 +1,6 @@
 {
-  "versionCode": 3,
-  "versionName": "1.0.2",
+  "versionCode": 4,
+  "versionName": "1.0.3",
   "apkUrl": "https://enurse.ccwu.cc/apk/app-release.apk",
-  "changelog": "1. 修复护理端创建药品崩溃（Gson 通配符问题）\n2. 创建药品时必须设置提醒策略\n3. 修复大便打卡 400"
+  "changelog": "1. 大便策略编辑：间隔天数校验（1~30 整数）、锁定后隐藏编辑按钮\n2. 修复小组警报计数：只统计患者未解决警报，护士不再显示"
 }

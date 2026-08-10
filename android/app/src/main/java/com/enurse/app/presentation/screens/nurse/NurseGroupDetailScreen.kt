@@ -140,9 +140,12 @@ fun NurseGroupDetailScreen(
                                 Text(member.user?.displayName ?: member.user?.nickname ?: member.user?.email ?: "成员", fontWeight = FontWeight.Medium, fontSize = 15.sp)
                                 Text(member.roleInGroup, fontSize = 12.sp, color = TextHint)
                             }
-                            Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = PrimaryBg)) {
-                                Text("${member.alertCount ?: 0} 警报", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    fontSize = 11.sp, color = Primary, fontWeight = FontWeight.Medium)
+                            // 警报数只对患者显示（护士的 alert 是收到的组内副本，计入成员列表无意义）
+                            if (member.user?.role == "PATIENT") {
+                                Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = PrimaryBg)) {
+                                    Text("${member.alertCount ?: 0} 警报", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        fontSize = 11.sp, color = Primary, fontWeight = FontWeight.Medium)
+                                }
                             }
                             if (member.roleInGroup != "OWNER") {
                                 Spacer(modifier = Modifier.width(8.dp))

@@ -187,12 +187,16 @@ let GroupsService = class GroupsService {
                 user: m.user,
             }));
         }
-        const memberIds = members.map((m) => m.userId);
-        const alertCounts = await this.prisma.alert.groupBy({
-            by: ['userId'],
-            where: { userId: { in: memberIds }, isResolved: false },
-            _count: { id: true },
-        });
+        const patientIds = members
+            .filter((m) => m.user.role === 'PATIENT')
+            .map((m) => m.userId);
+        const alertCounts = patientIds.length
+            ? await this.prisma.alert.groupBy({
+                by: ['userId'],
+                where: { userId: { in: patientIds }, isResolved: false },
+                _count: { id: true },
+            })
+            : [];
         const countMap = new Map(alertCounts.map((a) => [a.userId, a._count.id]));
         return members.map((m) => ({ ...m, alertCount: countMap.get(m.userId) ?? 0 }));
     }

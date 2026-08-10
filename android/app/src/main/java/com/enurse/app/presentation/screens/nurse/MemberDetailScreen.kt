@@ -231,7 +231,10 @@ private fun MemberStrategiesTab(
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { onToggleLock("bm", null) }, shape = RoundedCornerShape(28.dp), modifier = Modifier.height(36.dp)) { Text(if (isLocked) "解锁" else "锁定", fontSize = 13.sp, color = Primary) }
-                        OutlinedButton(onClick = { editInterval = intervalDays; editTime = reminderTime; showBmEdit = true }, shape = RoundedCornerShape(28.dp), modifier = Modifier.height(36.dp)) { Text("编辑", fontSize = 13.sp, color = Primary) }
+                        // 锁定时不显示编辑按钮（与服务端 Forbidden 语义一致）
+                        if (!isLocked) {
+                            OutlinedButton(onClick = { editInterval = intervalDays; editTime = reminderTime; showBmEdit = true }, shape = RoundedCornerShape(28.dp), modifier = Modifier.height(36.dp)) { Text("编辑", fontSize = 13.sp, color = Primary) }
+                        }
                     }
                 }
             }
@@ -435,16 +438,31 @@ private fun BmEditDialog(
     onSave: (String?, String?) -> Unit
 ) {
     if (!show) return
+    var errorText by remember { mutableStateOf("") }
     AlertDialog(onDismissRequest = onDismiss, shape = RoundedCornerShape(20.dp), title = { Text("编辑大便策略") },
         text = {
             Column {
                 OutlinedTextField(value = interval, onValueChange = onIntervalChange, label = { Text("间隔天数") }, shape = RoundedCornerShape(14.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary))
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = time, onValueChange = onTimeChange, label = { Text("提醒时间 (HH:mm)") }, shape = RoundedCornerShape(14.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary))
+                errorText.takeIf { it.isNotEmpty() }?.let {
+                    Spacer(Modifier.height(4.dp))
+                    Text(it, fontSize = 12.sp, color = AlertRed)
+                }
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(interval.ifBlank { null }, time.ifBlank { null }); onDismiss() }, shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = Primary)) { Text("保存") }
+            Button(onClick = {
+                val days = interval.ifBlank { null }?.toIntOrNull()
+                val t = time.ifBlank { null }
+                when {
+                    interval.isNotBlank() && (days == null || days < 1 || days > 30) ->
+                        errorText = "间隔天数须为 1~30 的整数"
+                    t != null && !t.matches(Regex("^\\d{2}:\\d{2}$")) ->
+                        errorText = "提醒时间格式须为 HH:mm（如 08:00）"
+                    else -> { onSave(interval.ifBlank { null }, t); onDismiss() }
+                }
+            }, shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = Primary)) { Text("保存") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } })
 }
