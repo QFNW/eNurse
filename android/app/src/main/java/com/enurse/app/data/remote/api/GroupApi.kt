@@ -1,5 +1,7 @@
 package com.enurse.app.data.remote.api
 
+import com.enurse.app.data.remote.dto.request.CreateMedicationForPatientRequest
+import com.enurse.app.data.remote.dto.request.UpdateMemberStrategiesRequest
 import com.enurse.app.data.remote.dto.response.GroupResponse
 import com.enurse.app.data.remote.dto.response.GroupMemberResponse
 import retrofit2.http.*
@@ -69,14 +71,14 @@ interface GroupApi {
     suspend fun createMedicationForPatient(
         @Path("id") id: String,
         @Path("userId") userId: String,
-        @Body body: Map<String, Any>
+        @Body body: CreateMedicationForPatientRequest
     ): Any
 
     @PUT("groups/{id}/members/{userId}/strategies")
     suspend fun updateMemberStrategies(
         @Path("id") id: String,
         @Path("userId") userId: String,
-        @Body body: Map<String, Any>
+        @Body body: UpdateMemberStrategiesRequest
     ): Any
 
     @POST("groups/join-staff")

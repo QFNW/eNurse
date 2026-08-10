@@ -2,6 +2,8 @@ package com.enurse.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enurse.app.data.remote.dto.request.CreateMedicationForPatientRequest
+import com.enurse.app.data.remote.dto.request.UpdateMemberStrategiesRequest
 import com.enurse.app.data.remote.dto.response.*
 import com.enurse.app.domain.repository.GroupRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -141,7 +143,16 @@ class NurseViewModel @Inject constructor(
         scheduleType: String? = null, intervalHours: Double? = null, fixedTimes: List<String>? = null
     ) {
         viewModelScope.launch {
-            groupRepository.createMedicationForPatient(groupId, userId, name, dosage, scheduleType, intervalHours, fixedTimes)
+            groupRepository.createMedicationForPatient(
+                groupId, userId,
+                CreateMedicationForPatientRequest(
+                    name = name,
+                    dosage = dosage,
+                    scheduleType = scheduleType,
+                    intervalHours = intervalHours,
+                    fixedTimes = fixedTimes
+                )
+            )
                 .onSuccess {
                     _state.value = _state.value.copy(error = "✓ 药品已创建")
                     loadMemberStrategies(groupId, userId)
@@ -181,10 +192,10 @@ class NurseViewModel @Inject constructor(
         }
     }
 
-    /** params 支持 BM 字段（intervalDays/reminderTime/isEnabled）和排班字段（scheduleId/scheduleType/intervalHours/fixedTimes/startTime）。 */
-    fun updateMemberStrategies(groupId: String, userId: String, params: Map<String, Any>) {
+    /** request 支持 BM 字段（intervalDays/reminderTime/isEnabled）和排班字段（scheduleId/scheduleType/intervalHours/fixedTimes/startTime），未传字段服务端忽略。 */
+    fun updateMemberStrategies(groupId: String, userId: String, request: UpdateMemberStrategiesRequest) {
         viewModelScope.launch {
-            groupRepository.updateMemberStrategies(groupId, userId, params)
+            groupRepository.updateMemberStrategies(groupId, userId, request)
                 .onSuccess {
                     _state.value = _state.value.copy(error = "✓ 策略已更新")
                     loadMemberStrategies(groupId, userId)

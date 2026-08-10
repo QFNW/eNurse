@@ -134,8 +134,8 @@ App 内「我的 → 版本更新」从服务器静态目录检查更新。发�
 
 ```json
 {
-  "versionCode": 2,
-  "versionName": "1.0.1",
+  "versionCode": 3,
+  "versionName": "1.0.2",
   "apkUrl": "https://enurse.ccwu.cc/apk/app-release.apk",
   "changelog": "更新说明（可选）"
 }

@@ -1,6 +1,6 @@
 {
-  "versionCode": 2,
-  "versionName": "1.0.1",
+  "versionCode": 3,
+  "versionName": "1.0.2",
   "apkUrl": "https://enurse.ccwu.cc/apk/app-release.apk",
-  "changelog": "1. 时间显示统一为北京时间\n2. 护理端：可编辑药品排班、创建药品带提醒策略\n3. 护理端：组内警报响铃提醒\n4. 虚拟患者默认大便策略\n5. 启动时自动检查更新\n6. 同一事项的多次提醒只保留最新一条"
+  "changelog": "1. 修复护理端创建药品崩溃（Gson 通配符问题）\n2. 创建药品时必须设置提醒策略\n3. 修复大便打卡 400"
 }

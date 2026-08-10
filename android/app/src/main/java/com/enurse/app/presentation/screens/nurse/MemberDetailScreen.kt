@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.enurse.app.data.remote.dto.request.UpdateMemberStrategiesRequest
 import com.enurse.app.presentation.theme.*
 import com.enurse.app.presentation.viewmodel.NurseViewModel
 
@@ -97,19 +98,24 @@ fun MemberDetailScreen(
                         viewModel.createMedicationForPatient(groupId, userId, name, dosage, schedType, interval, times)
                     },
                     onUpdateBmSettings = { intervalDays, reminderTime ->
-                        val p = mutableMapOf<String, Any>()
-                        intervalDays?.let { p["intervalDays"] = it }
-                        reminderTime?.let { p["reminderTime"] = it }
-                        if (p.isNotEmpty()) viewModel.updateMemberStrategies(groupId, userId, p)
+                        val req = UpdateMemberStrategiesRequest(
+                            intervalDays = intervalDays?.toIntOrNull(),
+                            reminderTime = reminderTime
+                        )
+                        if (req.intervalDays != null || req.reminderTime != null) {
+                            viewModel.updateMemberStrategies(groupId, userId, req)
+                        }
                     },
                     onUpdateMedSchedule = { scheduleId, schedType, interval, times ->
-                        val p = mutableMapOf<String, Any>(
-                            "scheduleId" to scheduleId,
-                            "scheduleType" to schedType
+                        viewModel.updateMemberStrategies(
+                            groupId, userId,
+                            UpdateMemberStrategiesRequest(
+                                scheduleId = scheduleId,
+                                scheduleType = schedType,
+                                intervalHours = interval,
+                                fixedTimes = times
+                            )
                         )
-                        interval?.let { p["intervalHours"] = it }
-                        times?.let { p["fixedTimes"] = it }
-                        viewModel.updateMemberStrategies(groupId, userId, p)
                     })
             }
         }
@@ -302,8 +308,8 @@ private fun CreateMedDialog(
     onCreate: (String, String?, String?, Double?, List<String>?) -> Unit
 ) {
     if (!show) return
-    var schedType by remember { mutableStateOf("") }
-    var schedTimes by remember { mutableStateOf("") }
+    var schedType by remember { mutableStateOf("FIXED_TIME") }
+    var schedTimes by remember { mutableStateOf("08:00,20:00") }
     var schedInterval by remember { mutableStateOf("8") }
     var errorText by remember { mutableStateOf("") }
     AlertDialog(onDismissRequest = onDismiss, shape = RoundedCornerShape(20.dp), title = { Text("创建药品") },
@@ -313,12 +319,9 @@ private fun CreateMedDialog(
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = dosage, onValueChange = onDosageChange, label = { Text("剂量（可选）") }, shape = RoundedCornerShape(14.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary))
                 Spacer(Modifier.height(12.dp))
-                Text("提醒策略（可选）", fontSize = 13.sp, color = TextSecondary)
+                Text("提醒策略", fontSize = 13.sp, color = TextSecondary)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                    FilterChip(selected = schedType == "", onClick = { schedType = "" },
-                        label = { Text("不设置") }, shape = RoundedCornerShape(20.dp),
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryBg, selectedLabelColor = Primary))
                     FilterChip(selected = schedType == "FIXED_TIME", onClick = { schedType = "FIXED_TIME" },
                         label = { Text("固定时间") }, shape = RoundedCornerShape(20.dp),
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryBg, selectedLabelColor = Primary))
@@ -326,21 +329,19 @@ private fun CreateMedDialog(
                         label = { Text("间隔") }, shape = RoundedCornerShape(20.dp),
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryBg, selectedLabelColor = Primary))
                 }
-                if (schedType != "") {
-                    Spacer(Modifier.height(8.dp))
-                    // 单一 TextField 绑定激活类型（项目规则：不切换 TextField，避免输入状态丢失）
-                    OutlinedTextField(
-                        value = if (schedType == "FIXED_TIME") schedTimes else schedInterval,
-                        onValueChange = { if (schedType == "FIXED_TIME") schedTimes = it else schedInterval = it },
-                        label = { Text(if (schedType == "FIXED_TIME") "时间 (逗号分隔, 如 08:00,20:00)" else "每 N 小时") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary)
-                    )
-                    errorText.takeIf { it.isNotEmpty() }?.let {
-                        Spacer(Modifier.height(4.dp))
-                        Text(it, fontSize = 12.sp, color = AlertRed)
-                    }
+                Spacer(Modifier.height(8.dp))
+                // 单一 TextField 绑定激活类型（项目规则：不切换 TextField，避免输入状态丢失）
+                OutlinedTextField(
+                    value = if (schedType == "FIXED_TIME") schedTimes else schedInterval,
+                    onValueChange = { if (schedType == "FIXED_TIME") schedTimes = it else schedInterval = it },
+                    label = { Text(if (schedType == "FIXED_TIME") "时间 (逗号分隔, 如 08:00,20:00)" else "每 N 小时") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, focusedLabelColor = Primary)
+                )
+                errorText.takeIf { it.isNotEmpty() }?.let {
+                    Spacer(Modifier.height(4.dp))
+                    Text(it, fontSize = 12.sp, color = AlertRed)
                 }
             }
         },
@@ -357,7 +358,7 @@ private fun CreateMedDialog(
                     schedType == "INTERVAL" && (interval == null || interval <= 0) ->
                         errorText = "小时数须为正数（如 6 或 0.5）"
                     else -> {
-                        onCreate(name, dosage.ifBlank { null }, schedType.ifBlank { null }, interval, times.takeIf { schedType == "FIXED_TIME" })
+                        onCreate(name, dosage.ifBlank { null }, schedType, interval, times.takeIf { schedType == "FIXED_TIME" })
                         onDismiss()
                     }
                 }

@@ -1,5 +1,7 @@
 package com.enurse.app.domain.repository
 
+import com.enurse.app.data.remote.dto.request.CreateMedicationForPatientRequest
+import com.enurse.app.data.remote.dto.request.UpdateMemberStrategiesRequest
 import com.enurse.app.data.remote.dto.response.GroupResponse
 import com.enurse.app.data.remote.dto.response.GroupMemberResponse
 
@@ -17,11 +19,8 @@ interface GroupRepository {
     suspend fun proxyBm(groupId: String, userId: String, notes: String?): Result<Any>
     suspend fun proxyMedication(groupId: String, userId: String, medicationId: String, notes: String?): Result<Any>
     suspend fun createVirtualPatient(groupId: String, name: String): Result<Any>
-    suspend fun createMedicationForPatient(
-        groupId: String, userId: String, name: String, dosage: String?,
-        scheduleType: String? = null, intervalHours: Double? = null, fixedTimes: List<String>? = null
-    ): Result<Any>
-    suspend fun updateMemberStrategies(groupId: String, userId: String, params: Map<String, Any>): Result<Any>
+    suspend fun createMedicationForPatient(groupId: String, userId: String, request: CreateMedicationForPatientRequest): Result<Any>
+    suspend fun updateMemberStrategies(groupId: String, userId: String, request: UpdateMemberStrategiesRequest): Result<Any>
     suspend fun joinAsStaff(inviteCode: String): Result<Any>
     suspend fun getAdminRequests(groupId: String): Result<List<Any>>
     suspend fun approveAdminRequest(groupId: String, requestId: String): Result<Any>
