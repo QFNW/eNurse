@@ -136,9 +136,12 @@ class NurseViewModel @Inject constructor(
         }
     }
 
-    fun createMedicationForPatient(groupId: String, userId: String, name: String, dosage: String?) {
+    fun createMedicationForPatient(
+        groupId: String, userId: String, name: String, dosage: String?,
+        scheduleType: String? = null, intervalHours: Double? = null, fixedTimes: List<String>? = null
+    ) {
         viewModelScope.launch {
-            groupRepository.createMedicationForPatient(groupId, userId, name, dosage)
+            groupRepository.createMedicationForPatient(groupId, userId, name, dosage, scheduleType, intervalHours, fixedTimes)
                 .onSuccess {
                     _state.value = _state.value.copy(error = "✓ 药品已创建")
                     loadMemberStrategies(groupId, userId)
@@ -178,9 +181,10 @@ class NurseViewModel @Inject constructor(
         }
     }
 
-    fun updateMemberStrategies(groupId: String, userId: String, bmSettings: Map<String, String>) {
+    /** params 支持 BM 字段（intervalDays/reminderTime/isEnabled）和排班字段（scheduleId/scheduleType/intervalHours/fixedTimes/startTime）。 */
+    fun updateMemberStrategies(groupId: String, userId: String, params: Map<String, Any>) {
         viewModelScope.launch {
-            groupRepository.updateMemberStrategies(groupId, userId, bmSettings)
+            groupRepository.updateMemberStrategies(groupId, userId, params)
                 .onSuccess {
                     _state.value = _state.value.copy(error = "✓ 策略已更新")
                     loadMemberStrategies(groupId, userId)

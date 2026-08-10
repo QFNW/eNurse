@@ -182,7 +182,7 @@ export declare class GroupsController {
             reminderTime: string;
             isEnabled: boolean;
             isLocked: boolean;
-        } | null;
+        };
         medications: ({
             schedules: {
                 id: string;
@@ -216,7 +216,7 @@ export declare class GroupsController {
             reminderTime: string;
             isEnabled: boolean;
             isLocked: boolean;
-        } | null;
+        };
         medications: ({
             schedules: {
                 id: string;
@@ -268,6 +268,10 @@ export declare class GroupsController {
     createMedicationForPatient(user: JwtPayload, id: string, memberId: string, dto: {
         name: string;
         dosage?: string;
+        scheduleType?: string;
+        intervalHours?: number;
+        fixedTimes?: string[];
+        startTime?: string;
     }): Promise<{
         id: string;
         createdAt: Date;

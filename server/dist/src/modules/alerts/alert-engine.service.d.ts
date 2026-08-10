@@ -8,6 +8,7 @@ export declare class AlertEngineService {
     checkMedicationReminders(): Promise<void>;
     private checkSingleMedicationReminder;
     cleanupStaleAlerts(): Promise<void>;
+    private notifyGroupNurses;
     private parseFixedTimes;
     private isTimeMatch;
 }

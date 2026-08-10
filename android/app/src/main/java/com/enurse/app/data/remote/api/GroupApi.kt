@@ -69,14 +69,14 @@ interface GroupApi {
     suspend fun createMedicationForPatient(
         @Path("id") id: String,
         @Path("userId") userId: String,
-        @Body body: Map<String, String>
+        @Body body: Map<String, Any>
     ): Any
 
     @PUT("groups/{id}/members/{userId}/strategies")
     suspend fun updateMemberStrategies(
         @Path("id") id: String,
         @Path("userId") userId: String,
-        @Body body: Map<String, String>
+        @Body body: Map<String, Any>
     ): Any
 
     @POST("groups/join-staff")

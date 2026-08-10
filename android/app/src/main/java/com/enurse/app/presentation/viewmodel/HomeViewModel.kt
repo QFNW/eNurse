@@ -57,7 +57,8 @@ class HomeViewModel @Inject constructor(
                 _state.value = _state.value.copy(isRecording = false, error = "无法获取用户信息，请重新登录")
                 return@launch
             }
-            val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+            // 带 +08:00 偏移发送，服务端 new Date() 解析正确（否则被按 UTC 解析，记录偏 8 小时）
+            val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", java.util.Locale.US)
                 .format(java.util.Date())
 
             bmRepository.record(userId, now, notes)

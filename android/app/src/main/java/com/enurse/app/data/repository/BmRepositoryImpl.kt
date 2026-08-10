@@ -38,7 +38,7 @@ class BmRepositoryImpl @Inject constructor(
         val res = apiResult.getOrThrow()
         // Cache locally (best-effort, failure is non-fatal since server has the record)
         try {
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
             bmRecordDao.insert(BmRecordEntity(
                 id = res.id, userId = userId,
                 recordedAt = sdf.parse(res.recordedAt)?.time ?: System.currentTimeMillis(),
@@ -52,7 +52,7 @@ class BmRepositoryImpl @Inject constructor(
 
     override suspend fun recordOffline(userId: String, recordedAt: String, notes: String?) {
         val id = "local_${UUID.randomUUID()}"
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
         bmRecordDao.insert(BmRecordEntity(
             id = id, userId = userId,
             recordedAt = sdf.parse(recordedAt)?.time ?: System.currentTimeMillis(),
@@ -103,7 +103,7 @@ class BmRepositoryImpl @Inject constructor(
                         bmRecordDao.insert(BmRecordEntity(
                             id = serverRecord.id,
                             userId = serverRecord.userId,
-                            recordedAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+                            recordedAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
                                 .parse(serverRecord.recordedAt)?.time ?: System.currentTimeMillis(),
                             notes = serverRecord.notes,
                             synced = true
@@ -122,7 +122,7 @@ class BmRepositoryImpl @Inject constructor(
                             medicationId = serverRecord.medicationId,
                             medicationName = serverRecord.medication?.name ?: "",
                             userId = serverRecord.userId,
-                            takenAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+                            takenAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
                                 .parse(serverRecord.takenAt)?.time ?: System.currentTimeMillis(),
                             synced = true
                         ))

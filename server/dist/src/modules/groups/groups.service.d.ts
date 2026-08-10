@@ -181,7 +181,7 @@ export declare class GroupsService {
             reminderTime: string;
             isEnabled: boolean;
             isLocked: boolean;
-        } | null;
+        };
         medications: ({
             schedules: {
                 id: string;
@@ -215,7 +215,7 @@ export declare class GroupsService {
             reminderTime: string;
             isEnabled: boolean;
             isLocked: boolean;
-        } | null;
+        };
         medications: ({
             schedules: {
                 id: string;
@@ -271,6 +271,10 @@ export declare class GroupsService {
     createMedicationForPatient(nurseId: string, groupId: string, patientId: string, dto: {
         name: string;
         dosage?: string;
+        scheduleType?: string;
+        intervalHours?: number;
+        fixedTimes?: string[];
+        startTime?: string;
     }): Promise<{
         id: string;
         createdAt: Date;

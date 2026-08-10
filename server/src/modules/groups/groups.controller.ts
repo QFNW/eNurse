@@ -203,7 +203,16 @@ export class GroupsController {
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Param('userId') memberId: string,
-    @Body() dto: { name: string; dosage?: string },
+    // 策略字段可选：传了 scheduleType 则在同一事务中创建排班
+    @Body()
+    dto: {
+      name: string;
+      dosage?: string;
+      scheduleType?: string;
+      intervalHours?: number;
+      fixedTimes?: string[];
+      startTime?: string;
+    },
   ) {
     return this.groupsService.createMedicationForPatient(user.sub, id, memberId, dto);
   }

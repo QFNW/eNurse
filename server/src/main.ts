@@ -2,11 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ChineseExceptionFilter } from './common/filters/chinese-exception.filter';
+import { DateOffsetInterceptor } from './common/date-offset.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalFilters(new ChineseExceptionFilter());
+  app.useGlobalInterceptors(new DateOffsetInterceptor());
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',

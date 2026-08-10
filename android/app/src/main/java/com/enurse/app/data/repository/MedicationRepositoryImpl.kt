@@ -58,7 +58,7 @@ class MedicationRepositoryImpl @Inject constructor(
             val body = mutableMapOf("medicationId" to medicationId, "takenAt" to takenAt)
             if (notes != null) body["notes"] = notes
             val res = medicationApi.createRecord(body)
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
             medicationDao.insert(MedicationRecordEntity(
                 id = res.id, medicationId = medicationId,
                 medicationName = res.medication?.name ?: "",
@@ -70,7 +70,7 @@ class MedicationRepositoryImpl @Inject constructor(
 
     override suspend fun recordOffline(userId: String, medicationId: String, medicationName: String, takenAt: String) {
         val id = "local_${UUID.randomUUID()}"
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
         medicationDao.insert(MedicationRecordEntity(
             id = id, medicationId = medicationId, medicationName = medicationName,
             userId = userId, takenAt = sdf.parse(takenAt)?.time ?: System.currentTimeMillis(), synced = false

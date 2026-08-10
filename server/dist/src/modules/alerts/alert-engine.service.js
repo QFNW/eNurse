@@ -80,6 +80,7 @@ let AlertEngineService = AlertEngineService_1 = class AlertEngineService {
                 message: `【易护提醒】${daysText}，请及时打卡或联系护理人员。`,
             },
         });
+        await this.notifyGroupNurses(setting.userId, client_1.AlertType.BM_REMINDER, `【易护提醒】${daysText}，请及时打卡或联系护理人员。`);
         this.logger.log(`BM alert created for user ${setting.userId}`);
     }
     async checkMedicationReminders() {
@@ -157,6 +158,7 @@ let AlertEngineService = AlertEngineService_1 = class AlertEngineService {
                 message: `【易护提醒】请按时服用「${schedule.medication.name}」${schedule.medication.dosage || ''}`,
             },
         });
+        await this.notifyGroupNurses(userId, client_1.AlertType.MEDICATION_REMINDER, `【易护提醒】请按时服用「${schedule.medication.name}」${schedule.medication.dosage || ''}`);
         this.logger.log(`Medication alert created for user ${userId}`);
     }
     async cleanupStaleAlerts() {
@@ -182,6 +184,46 @@ let AlertEngineService = AlertEngineService_1 = class AlertEngineService {
         ]);
         if (bmCount.count > 0 || medCount.count > 0) {
             this.logger.log(`Stale alert cleanup: BM=${bmCount.count}, Med=${medCount.count}`);
+        }
+    }
+    async notifyGroupNurses(patientId, type, message) {
+        try {
+            const patient = await this.prisma.user.findUnique({
+                where: { id: patientId },
+                select: { displayName: true },
+            });
+            const memberships = await this.prisma.groupMember.findMany({
+                where: { userId: patientId },
+                include: {
+                    group: {
+                        include: {
+                            members: {
+                                where: { user: { role: client_1.Role.NURSE } },
+                                include: { user: { select: { id: true, displayName: true } } },
+                            },
+                        },
+                    },
+                },
+            });
+            const notified = new Set();
+            for (const membership of memberships) {
+                for (const nurse of membership.group.members) {
+                    if (notified.has(nurse.userId))
+                        continue;
+                    notified.add(nurse.userId);
+                    await this.prisma.alert.create({
+                        data: {
+                            userId: nurse.userId,
+                            type,
+                            message: `【患者：${patient?.displayName || patientId}】${message}`,
+                        },
+                    });
+                    this.logger.log(`Alert forwarded to nurse ${nurse.userId} (patient ${patientId})`);
+                }
+            }
+        }
+        catch (err) {
+            this.logger.error(`Failed to notify nurses for patient ${patientId}: ${err.message}`);
         }
     }
     parseFixedTimes(raw) {

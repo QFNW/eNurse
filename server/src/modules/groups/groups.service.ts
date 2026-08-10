@@ -311,9 +311,14 @@ export class GroupsService {
     await this.ensureAdminOrOwner(ownerId, groupId);
     await this.ensureMemberInGroup(groupId, memberId);
 
+    // upsert：虚拟患者/从未设置过的真实患者查看时自动初始化默认策略
+    // （schema 默认 intervalDays=1 / reminderTime=08:00 / isEnabled=true），
+    // 否则 bmSettings 永远为 null，护理端无数据可看、提醒引擎也不扫描
     const [bmSettings, medications] = await Promise.all([
-      this.prisma.bmReminderSetting.findUnique({
+      this.prisma.bmReminderSetting.upsert({
         where: { userId: memberId },
+        create: { userId: memberId },
+        update: {},
       }),
       this.prisma.medication.findMany({
         where: { userId: memberId, isActive: true },
@@ -513,11 +518,52 @@ export class GroupsService {
     return Date.now().toString().slice(-6);
   }
 
-  async createMedicationForPatient(nurseId: string, groupId: string, patientId: string, dto: { name: string; dosage?: string }) {
+  async createMedicationForPatient(
+    nurseId: string,
+    groupId: string,
+    patientId: string,
+    dto: {
+      name: string;
+      dosage?: string;
+      scheduleType?: string;
+      intervalHours?: number;
+      fixedTimes?: string[];
+      startTime?: string;
+    },
+  ) {
     const m = await this.prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: nurseId } } });
     if (!m) throw new ForbiddenException('无权操作');
-    return this.prisma.medication.create({
-      data: { userId: patientId, name: dto.name, dosage: dto.dosage ?? null },
+
+    // 可选策略校验：FIXED_TIME 需 fixedTimes，INTERVAL 需 intervalHours
+    if (dto.scheduleType) {
+      if (dto.scheduleType !== 'FIXED_TIME' && dto.scheduleType !== 'INTERVAL') {
+        throw new BadRequestException('无效的排班类型');
+      }
+      if (dto.scheduleType === 'FIXED_TIME' && (!Array.isArray(dto.fixedTimes) || dto.fixedTimes.length === 0)) {
+        throw new BadRequestException('固定时间排班需提供 fixedTimes');
+      }
+      if (dto.scheduleType === 'INTERVAL' && !dto.intervalHours) {
+        throw new BadRequestException('间隔排班需提供 intervalHours');
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const med = await tx.medication.create({
+        data: { userId: patientId, name: dto.name, dosage: dto.dosage ?? null },
+      });
+      if (dto.scheduleType) {
+        await tx.medicationSchedule.create({
+          data: {
+            medicationId: med.id,
+            scheduleType: dto.scheduleType as any,
+            intervalHours: dto.scheduleType === 'INTERVAL' ? (dto.intervalHours ?? 8) : null,
+            fixedTimes: dto.scheduleType === 'FIXED_TIME' ? dto.fixedTimes : undefined,
+            startTime: dto.startTime ? new Date(dto.startTime) : undefined,
+            isEnabled: true,
+          },
+        });
+      }
+      return med;
     });
   }
 

@@ -55,7 +55,8 @@ fun MedicationScreen(onGoBack: () -> Unit) {
     var showRecord by remember { mutableStateOf<MedicationResponse?>(null) }
     var recordNotes by remember { mutableStateOf("") }
     var showExactAlarmDialog by remember { mutableStateOf(false) }
-    val dateFormat = remember { java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US) }
+    // 带 +08:00 偏移发送，服务端 new Date() 解析正确
+    val dateFormat = remember { java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", java.util.Locale.US) }
 
     suspend fun refreshMeds() {
         val result = repo.getMedications()

@@ -257,8 +257,10 @@ let GroupsService = class GroupsService {
         await this.ensureAdminOrOwner(ownerId, groupId);
         await this.ensureMemberInGroup(groupId, memberId);
         const [bmSettings, medications] = await Promise.all([
-            this.prisma.bmReminderSetting.findUnique({
+            this.prisma.bmReminderSetting.upsert({
                 where: { userId: memberId },
+                create: { userId: memberId },
+                update: {},
             }),
             this.prisma.medication.findMany({
                 where: { userId: memberId, isActive: true },
@@ -417,8 +419,34 @@ let GroupsService = class GroupsService {
         const m = await this.prisma.groupMember.findUnique({ where: { groupId_userId: { groupId, userId: nurseId } } });
         if (!m)
             throw new common_1.ForbiddenException('无权操作');
-        return this.prisma.medication.create({
-            data: { userId: patientId, name: dto.name, dosage: dto.dosage ?? null },
+        if (dto.scheduleType) {
+            if (dto.scheduleType !== 'FIXED_TIME' && dto.scheduleType !== 'INTERVAL') {
+                throw new common_1.BadRequestException('无效的排班类型');
+            }
+            if (dto.scheduleType === 'FIXED_TIME' && (!Array.isArray(dto.fixedTimes) || dto.fixedTimes.length === 0)) {
+                throw new common_1.BadRequestException('固定时间排班需提供 fixedTimes');
+            }
+            if (dto.scheduleType === 'INTERVAL' && !dto.intervalHours) {
+                throw new common_1.BadRequestException('间隔排班需提供 intervalHours');
+            }
+        }
+        return this.prisma.$transaction(async (tx) => {
+            const med = await tx.medication.create({
+                data: { userId: patientId, name: dto.name, dosage: dto.dosage ?? null },
+            });
+            if (dto.scheduleType) {
+                await tx.medicationSchedule.create({
+                    data: {
+                        medicationId: med.id,
+                        scheduleType: dto.scheduleType,
+                        intervalHours: dto.scheduleType === 'INTERVAL' ? (dto.intervalHours ?? 8) : null,
+                        fixedTimes: dto.scheduleType === 'FIXED_TIME' ? dto.fixedTimes : undefined,
+                        startTime: dto.startTime ? new Date(dto.startTime) : undefined,
+                        isEnabled: true,
+                    },
+                });
+            }
+            return med;
         });
     }
     async joinAsStaff(userId, inviteCode) {
