@@ -17,7 +17,7 @@ class CreateBmRecordDto {
 }
 exports.CreateBmRecordDto = CreateBmRecordDto;
 __decorate([
-    (0, class_validator_1.Matches)(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/),
+    (0, class_validator_1.Matches)(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?)?$/),
     __metadata("design:type", String)
 ], CreateBmRecordDto.prototype, "recordedAt", void 0);
 __decorate([
