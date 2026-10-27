@@ -20,7 +20,7 @@ import java.io.FileOutputStream
 
 /**
  * 版本检查与 APK 下载安装（静态文件分发：GET /apk/version.json → 下载 apkUrl → 安装）。
- * version.json 的 URL 从 BuildConfig.API_BASE_URL 推导（release = https://enurse.ccwu.cc/api/v1/ → /apk/）。
+ * version.json 的 URL 从 BuildConfig.API_BASE_URL 推导（release = https://bohack26.kdns.fr/api/v1/ → /apk/）。
  */
 object UpdateChecker {
     private const val TAG = "UpdateChecker"

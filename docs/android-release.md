@@ -17,7 +17,7 @@
 apiBaseUrl=https://你的域名/api/v1/
 ```
 
-> release 构建读取此项；不设置时使用占位地址 `https://enurse.ccwu.cc/api/v1/`（当前项目域名）。debug 构建固定用模拟器地址 `http://10.0.2.2:3000/api/v1/`，不受影响。
+> release 构建读取此项；不设置时使用占位地址 `https://bohack26.kdns.fr/api/v1/`（当前项目域名）。debug 构建固定用模拟器地址 `http://10.0.2.2:3000/api/v1/`，不受影响。
 
 ### 2. 构建
 

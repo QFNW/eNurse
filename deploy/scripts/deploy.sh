@@ -45,8 +45,23 @@ if [ ! -d "$WEB_ROOT" ]; then
   echo "  or set WEB_ROOT=... to the site's root directory."
   exit 1
 fi
+# Preserve the APK distribution dir: it is uploaded separately, not part of dist
+APK_BACKUP=""
+if [ -d "$WEB_ROOT/apk" ]; then
+  APK_BACKUP="$(mktemp -d)"
+  cp -a "$WEB_ROOT/apk" "$APK_BACKUP/"
+  echo "  preserving $WEB_ROOT/apk"
+fi
+
 rm -rf "$WEB_ROOT"/*
 cp -r web-admin/dist/* "$WEB_ROOT/"
+
+if [ -n "$APK_BACKUP" ]; then
+  rm -rf "$WEB_ROOT/apk"
+  cp -a "$APK_BACKUP/apk" "$WEB_ROOT/apk"
+  rm -rf "$APK_BACKUP"
+fi
+
 echo "  copied $(find "$WEB_ROOT" -type f | wc -l) files"
 
 echo "==> [3/5] Validating compose file"

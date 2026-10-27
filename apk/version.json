@@ -1,6 +1,6 @@
 {
-  "versionCode": 4,
-  "versionName": "1.0.3",
-  "apkUrl": "https://enurse.ccwu.cc/apk/app-release.apk",
-  "changelog": "1. 大便策略编辑：间隔天数校验（1~30 整数）、锁定后隐藏编辑按钮\n2. 修复小组警报计数：只统计患者未解决警报，护士不再显示"
+  "versionCode": 5,
+  "versionName": "1.0.4",
+  "apkUrl": "https://bohack26.kdns.fr/apk/app-release.apk",
+  "changelog": "1. 服务器迁移至新域名，修复登录与数据同步连接问题"
 }

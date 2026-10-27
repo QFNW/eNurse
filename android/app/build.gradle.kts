@@ -28,8 +28,8 @@ android {
         applicationId = "com.enurse.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -54,7 +54,7 @@ android {
             buildConfigField(
                 "String",
                 "API_BASE_URL",
-                "\"${localProps.getProperty("apiBaseUrl") ?: "https://enurse.ccwu.cc/api/v1/"}\"",
+                "\"${localProps.getProperty("apiBaseUrl") ?: "https://bohack26.kdns.fr/api/v1/"}\"",
             )
             signingConfig = signingConfigs.getByName("release")
         }
