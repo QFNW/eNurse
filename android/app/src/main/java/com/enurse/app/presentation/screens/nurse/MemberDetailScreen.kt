@@ -1,5 +1,8 @@
 package com.enurse.app.presentation.screens.nurse
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -14,6 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.enurse.app.data.remote.dto.request.UpdateMemberStrategiesRequest
 import com.enurse.app.presentation.theme.*
 import com.enurse.app.presentation.viewmodel.NurseViewModel
+import com.enurse.app.reminder.ReminderScheduler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,8 +29,18 @@ fun MemberDetailScreen(
     viewModel: NurseViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("事件", "策略")
+    // 精确闹钟权限引导（与患者端一致：Android 12+ 默认可能未授权，提醒会延迟）
+    var showExactAlarmDialog by remember { mutableStateOf(false) }
+
+    /** 修改策略后检查精确闹钟权限，未授权则引导开启（患者端同样行为）。 */
+    fun checkExactAlarm() {
+        if (!ReminderScheduler.canScheduleExact(context)) {
+            showExactAlarmDialog = true
+        }
+    }
 
     LaunchedEffect(groupId, userId) {
         viewModel.loadMemberEvents(groupId, userId)
@@ -104,6 +119,7 @@ fun MemberDetailScreen(
                         )
                         if (req.intervalDays != null || req.reminderTime != null) {
                             viewModel.updateMemberStrategies(groupId, userId, req)
+                            checkExactAlarm()
                         }
                     },
                     onUpdateMedSchedule = { scheduleId, schedType, interval, times ->
@@ -116,9 +132,33 @@ fun MemberDetailScreen(
                                 fixedTimes = times
                             )
                         )
+                        checkExactAlarm()
                     })
             }
         }
+    }
+
+    // 精确闹钟权限引导（与患者端一致的 UI 和行为）
+    if (showExactAlarmDialog) {
+        AlertDialog(
+            onDismissRequest = { showExactAlarmDialog = false },
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("开启精确提醒", fontWeight = FontWeight.SemiBold) },
+            text = { Text("系统限制了闹钟的精确触发（提醒可能延迟几分钟）。建议在系统设置中允许「闹钟和提醒」，确保按时提醒。", fontSize = 14.sp) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExactAlarmDialog = false
+                        context.startActivity(
+                            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}"))
+                        )
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) { Text("去开启") }
+            },
+            dismissButton = { TextButton(onClick = { showExactAlarmDialog = false }) { Text("取消") } }
+        )
     }
 }
 
